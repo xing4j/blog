@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <meta name="description" content="技术博客 — 记录编程学习与实践">
+  <title>zx20100143 · Blog</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍️</text></svg>">
+
+  <!-- Docsify theme -->
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <!-- Code highlight -->
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+
+  <style>
+    :root {
+      --theme-color: #3F51B5;
+      --sidebar-width: 280px;
+    }
+
+    /* Cover page */
+    section.cover .cover-main h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    section.cover .cover-main p {
+      color: rgba(255,255,255,.9);
+      font-size: 1.1rem;
+    }
+    section.cover .cover-main a.anchor {
+      display: inline-block;
+      min-width: 120px;
+      text-align: center;
+      border-radius: 24px;
+      padding: 8px 24px;
+      font-size: 0.95rem;
+      transition: all .2s;
+    }
+
+    /* Post meta style */
+    .markdown-section .post-meta {
+      color: #999;
+      font-size: 0.88rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+    .markdown-section .post-meta .tag {
+      background: var(--theme-color);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 4px;
+    }
+
+    /* Heading accent bar */
+    .markdown-section h1:first-child {
+      padding-bottom: .6rem;
+      border-bottom: 3px solid var(--theme-color);
+    }
+
+    /* Table style */
+    .markdown-section table th {
+      background: #f0f2ff;
+    }
+
+    /* Sidebar header */
+    .sidebar-nav > ul > li > a {
+      font-weight: 600;
+      color: var(--theme-color) !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">加载中...</div>
+  <script>
+    window.$docsify = {
+      name: '✍️ My Blog',
+      nameLink: '/',
+      repo: 'https://github.com/zx20100143/blog',
+      loadSidebar: true,
+      loadNavbar: true,
+      coverpage: true,
+      onlyCover: false,
+      subMaxLevel: 2,
+      auto2top: true,
+      homepage: 'README.md',
+      // Search plugin
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: '🔍 搜索文章...',
+        noData: '没有找到相关内容',
+        depth: 6,
+      },
+      // Copy code button
+      copyCode: {
+        buttonText: '复制',
+        errorText: '出错',
+        successText: '✓ 已复制',
+      },
+      // Pagination (prev/next)
+      pagination: {
+        previousText: '← 上一篇',
+        nextText: '下一篇 →',
+        crossChapter: true,
+        crossChapterText: true,
+      },
+    };
+  </script>
+
+  <!-- Docsify core -->
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+
+  <!-- Plugins -->
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+
+  <!-- Syntax highlighting -->
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-java.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-python.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-javascript.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-markup.min.js"></script>
+</body>
+</html>
