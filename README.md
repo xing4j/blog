@@ -2,7 +2,7 @@
 
 Personal tech blog powered by **[docsify](https://docsify.js.org)** + **GitHub Pages**.
 
-🌐 Visit: **https://zx20100143.github.io/blog/**
+🌐 Visit: **https://xing4j.github.io/blog/**
 
 ## Local Preview
 

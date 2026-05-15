@@ -1,6 +1,6 @@
 # 关于我
 
-你好！我是 **zx20100143**，一名后端开发工程师。
+你好！我是 **xing4j**，一名后端开发工程师。
 
 ## 技术栈
 
@@ -11,11 +11,11 @@
 
 ## 开源项目
 
-- **[DocKit](https://github.com/zx20100143/DocKit)** — 轻量级自托管文档管理系统，基于 Spring Boot，支持 Markdown 编辑、团队协作与知识库管理
+- **[DocKit](https://github.com/xing4j/DocKit)** — 轻量级自托管文档管理系统，基于 Spring Boot，支持 Markdown 编辑、团队协作与知识库管理
 
 ## 联系方式
 
-- GitHub：[@zx20100143](https://github.com/zx20100143)
+- GitHub：[@xing4j](https://github.com/xing4j)
 
 ---
 
