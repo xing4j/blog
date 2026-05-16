@@ -51,7 +51,6 @@
 
 ## 微服务
 
-- [Service Mesh 与 Istio 实践](posts/2026-04-30-service-mesh-istio.md) — `2026-04-30`
 - [OpenFeign 超时、重试与熔断配置](posts/2025-09-06-openfeign-timeout-retry.md) — `2025-09-06`
 - [分布式 ID 生成方案：雪花算法与 Leaf](posts/2025-08-02-distributed-id.md) — `2025-08-02`
 - [Spring Cloud 微服务体系全景图](posts/2025-06-27-spring-cloud-overview.md) — `2025-06-27`
@@ -63,14 +62,10 @@
 
 - [微前端方案对比：qiankun / Module Federation](posts/2026-03-28-micro-frontend.md) — `2026-03-28`
 - [TypeScript 在 Vue 项目中的工程化实践](posts/2026-02-10-typescript-vue.md) — `2026-02-10`
-- [前端性能优化：懒加载、虚拟列表、骨架屏](posts/2025-12-27-frontend-performance.md) — `2025-12-27`
-- [基于 Vue 3 封装组件库：从零到发布](posts/2025-11-16-vue-component-library.md) — `2025-11-16`
 - [Vite vs Webpack：构建工具选型与优化](posts/2025-09-21-vite-vs-webpack.md) — `2025-09-21`
 - [Pinia vs Vuex：新一代状态管理方案](posts/2025-08-10-pinia-vs-vuex.md) — `2025-08-10`
 - [Axios 二次封装：拦截器、统一错误处理](posts/2025-04-27-axios-encapsulation.md) — `2025-04-27`
-- [Vue 3 响应式原理：Proxy 与依赖追踪](posts/2025-01-25-vue3-reactivity.md) — `2025-01-25`
 - [Vue Router 动态路由与权限控制](posts/2024-10-05-vue-router-permission.md) — `2024-10-05`
-- [Vue 3 Composition API 核心用法](posts/2024-08-18-vue3-composition-api.md) — `2024-08-18`
 
 ## DevOps
 

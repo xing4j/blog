@@ -7,7 +7,6 @@
   - [Hello World — 博客搭建记录](posts/2026-05-15-hello-world.md)
   - [Spring Boot 实用技巧整理](posts/2026-05-10-spring-boot-tips.md)
   - [Code Review 清单：Java 代码审查要点](posts/2026-05-02-code-review-checklist.md)
-  - [Service Mesh 与 Istio 实践](posts/2026-04-30-service-mesh-istio.md)
   - [RBAC 权限设计与 Spring Security 实现](posts/2026-04-11-rbac-permission.md)
 
 - **分类**
@@ -15,8 +14,8 @@
   - [Spring 生态 (10)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (5)](posts/#中间件)
-  - [微服务 (7)](posts/#微服务)
-  - [Vue 前端 (10)](posts/#vue-前端)
+  - [微服务 (6)](posts/#微服务)
+  - [Vue 前端 (6)](posts/#vue-前端)
   - [DevOps (8)](posts/#devops)
   - [系统设计 (5)](posts/#系统设计)
   - [安全 (4)](posts/#安全)

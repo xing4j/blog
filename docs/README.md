@@ -12,7 +12,6 @@
 | 2026-05-15 | [Hello World — 博客搭建记录](posts/2026-05-15-hello-world.md) | 工具与效率 |
 | 2026-05-10 | [Spring Boot 实用技巧整理](posts/2026-05-10-spring-boot-tips.md) | Spring 生态 |
 | 2026-05-02 | [Code Review 清单：Java 代码审查要点](posts/2026-05-02-code-review-checklist.md) | 性能与质量 |
-| 2026-04-30 | [Service Mesh 与 Istio 实践](posts/2026-04-30-service-mesh-istio.md) | 微服务 |
 | 2026-04-11 | [RBAC 权限设计与 Spring Security 实现](posts/2026-04-11-rbac-permission.md) | 系统设计 |
 | 2026-04-03 | [JMeter 性能测试实战](posts/2026-04-03-jmeter-performance-test.md) | 性能与质量 |
 | 2026-03-28 | [微前端方案对比：qiankun / Module Federation](posts/2026-03-28-micro-frontend.md) | Vue 前端 |
