@@ -22,6 +22,7 @@
     "footerAbout": "关于我",
     "totalPrefix": "共",
     "totalSuffix": "篇文章",
+    "dash": " — ",
     "footerLine": "📚 所有文章见 [归档](posts/) &nbsp;|&nbsp; 👤 [关于我](about.md)"
   },
   "articles": [
