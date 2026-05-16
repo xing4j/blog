@@ -1,6 +1,7 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md)
   - [Linux 生产环境日志查询命令技巧](posts/2026-05-16-linux-log-query-tips.md)
   - [Spring Boot 配置体系详解：来源类型、优先级与覆盖原则](posts/2026-05-16-spring-boot-config-priority.md)
   - [JUnit 5 + Mockito 单元测试实战](posts/2026-05-15-junit5-mockito.md)
@@ -10,7 +11,7 @@
   - [RBAC 权限设计与 Spring Security 实现](posts/2026-04-11-rbac-permission.md)
 
 - **分类**
-  - [Java 核心 (10)](posts/#java-核心)
+  - [Java 核心 (11)](posts/#java-核心)
   - [Spring 生态 (10)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (5)](posts/#中间件)

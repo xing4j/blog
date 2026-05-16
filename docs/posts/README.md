@@ -1,9 +1,10 @@
 # 📚 文章归档
 
-> 共 71 篇文章
+> 共 72 篇文章
 
 ## Java 核心
 
+- [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md) — `2026-05-16`
 - [Java 泛型擦除与通配符详解](posts/2025-05-08-java-generics-erasure.md) — `2025-05-08`
 - [Java 深拷贝 vs 浅拷贝详解](posts/2025-03-22-java-deep-shallow-copy.md) — `2025-03-22`
 - [Java Stream 常见陷阱与最佳实践](posts/2025-02-01-java-stream-pitfalls.md) — `2025-02-01`
