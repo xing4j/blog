@@ -61,7 +61,7 @@
 
 ## Vue 前端
 
-- [微前端方案对比：qiankun / Module Federation](posts/2026-03-28-micro-frontend.md) — `2026-03-28`
+- [qiankun 微前端框架：原理详解与实战指南](posts/2026-05-17-qiankun-micro-frontend.md) — `2026-05-17`
 - [TypeScript 在 Vue 项目中的工程化实践](posts/2026-02-10-typescript-vue.md) — `2026-02-10`
 - [Vite vs Webpack：构建工具选型与优化](posts/2025-09-21-vite-vs-webpack.md) — `2025-09-21`
 - [Pinia vs Vuex：新一代状态管理方案](posts/2025-08-10-pinia-vs-vuex.md) — `2025-08-10`
