@@ -1,301 +1,257 @@
-﻿# SpringBoot 自动装配原理（@EnableAutoConfiguration 源码解析）
+﻿# Spring Boot 自动装配：零配置背后的魔法
 
-<div class="post-meta">📅 2024-10-27 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring Boot</span></div>
+<div class="post-meta">📅 2024-10-27 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
 
-SpringBoot 最核心的特性就是自动装配——通过约定优于配置，让开发者无需手动注册大量 Bean。本文从源码层面拆解整个流程，并手写一个自定义 Starter。
+加一个 spring-boot-starter-data-redis 依赖，不写任何配置类，Redis 连接池就自动初始化好了。Spring Boot 的自动装配让"约定大于配置"成为现实。理解这套机制，才能在出现问题时知道如何调试，以及如何编写自己的 Starter。
 
 ---
 
-## 一、整体流程图
+## 一、背景：Spring Boot 之前的痛点
 
-```
+Spring 时代（Spring 4.x 之前），整合 Redis 需要：
+1. 在 XML 或 Java Config 中手动定义 JedisConnectionFactory
+2. 手动定义 RedisTemplate 并配置序列化器
+3. 手动定义连接池配置
+
+Spring Boot 的目标：让 80% 的场景下，引入依赖即可用。
+
+---
+
+## 二、自动装配的核心流程
+
+`
 @SpringBootApplication
-        │
-        ├─ @ComponentScan          → 扫描当前包及子包
-        ├─ @SpringBootConfiguration → 等同 @Configuration
-        └─ @EnableAutoConfiguration
-                │
-                └─ @Import(AutoConfigurationImportSelector.class)
-                            │
-                            ▼
-              selectImports() 方法执行
-                            │
-                ┌───────────┴────────────┐
-                │                        │
-        Spring Boot 2.7-            Spring Boot 3.x+
-   META-INF/spring.factories    META-INF/spring/
-   EnableAutoConfiguration=...  AutoConfiguration.imports
-                │                        │
-                └───────────┬────────────┘
-                            ▼
-                  加载候选自动配置类列表
-                            │
-                            ▼
-                  @Conditional 条件过滤
-                  ├─ @ConditionalOnClass
-                  ├─ @ConditionalOnMissingBean
-                  ├─ @ConditionalOnProperty
-                  └─ ...
-                            │
-                            ▼
-                  注册满足条件的配置类 Bean
-```
+    ↓ 包含
+@EnableAutoConfiguration
+    ↓ 导入
+AutoConfigurationImportSelector
+    ↓ 读取
+spring.factories / AutoConfiguration.imports（Spring Boot 3.x）
+    ↓ 过滤（@Conditional）
+符合条件的 AutoConfiguration 类
+    ↓ 执行
+注册所需的 Bean 到容器
+`
 
----
+### 2.1 入口：@EnableAutoConfiguration
 
-## 二、@SpringBootApplication 源码分析
+`java
+@SpringBootApplication
+// 等价于：
+@SpringBootConfiguration
+@EnableAutoConfiguration   // ← 自动装配的开关
+@ComponentScan
+`
 
-```java
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@SpringBootConfiguration      // 本质是 @Configuration
-@EnableAutoConfiguration      // 核心：开启自动装配
-@ComponentScan(excludeFilters = {
-    @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
-    @Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class)
-})
-public @interface SpringBootApplication {
-    // 排除特定自动配置类
-    Class<?>[] exclude() default {};
-    String[] excludeName() default {};
-}
-```
+### 2.2 SPI 配置文件
 
----
+Spring Boot 通过类 SPI 机制发现所有自动配置类：
 
-## 三、@EnableAutoConfiguration 与 ImportSelector
-
-```java
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@AutoConfigurationPackage
-@Import(AutoConfigurationImportSelector.class) // 关键
-public @interface EnableAutoConfiguration {
-    Class<?>[] exclude() default {};
-}
-```
-
-`AutoConfigurationImportSelector` 实现了 `DeferredImportSelector`（延迟导入，在普通 Bean 注册完成后才执行）：
-
-```java
-public class AutoConfigurationImportSelector implements DeferredImportSelector {
-
-    @Override
-    public String[] selectImports(AnnotationMetadata metadata) {
-        // 1. 获取自动配置候选列表
-        AutoConfigurationEntry entry = getAutoConfigurationEntry(metadata);
-        return StringUtils.toStringArray(entry.getConfigurations());
-    }
-
-    protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata metadata) {
-        // 2. 从 spring.factories / AutoConfiguration.imports 加载候选类
-        List<String> configurations = getCandidateConfigurations(metadata, attributes);
-
-        // 3. 去重
-        configurations = removeDuplicates(configurations);
-
-        // 4. 排除 exclude 指定的类
-        Set<String> exclusions = getExclusions(metadata, attributes);
-        configurations.removeAll(exclusions);
-
-        // 5. 过滤（@Conditional 条件）
-        configurations = getConfigurationClassFilter().filter(configurations);
-
-        return new AutoConfigurationEntry(configurations, exclusions);
-    }
-}
-```
-
----
-
-## 四、spring.factories vs AutoConfiguration.imports
-
-### Spring Boot 2.x（spring.factories）
-
-```properties
-# META-INF/spring.factories
+`
+Spring Boot 2.x：
+META-INF/spring.factories 文件中：
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,\
   org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration,\
-  org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,\
-  org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-```
+  ...（120+ 个自动配置类）
 
-### Spring Boot 3.x（AutoConfiguration.imports）
+Spring Boot 3.x（新格式）：
+META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+文件中每行一个自动配置类全限定名
+`
 
-```
-# META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
-org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-```
+### 2.3 @Conditional：按需生效
 
----
+自动配置类不是全部生效，通过 @Conditional 系列注解控制：
 
-## 五、@Conditional 条件注解详解
-
-| 注解 | 生效条件 | 典型用途 |
-|------|---------|---------|
-| `@ConditionalOnClass` | classpath 存在指定类 | 依赖可选时 |
-| `@ConditionalOnMissingClass` | classpath 不存在指定类 | 排除冲突 |
-| `@ConditionalOnBean` | 容器中存在指定 Bean | 依赖其他 Bean |
-| `@ConditionalOnMissingBean` | 容器中不存在指定 Bean | 允许用户覆盖 |
-| `@ConditionalOnProperty` | 配置属性满足条件 | 功能开关 |
-| `@ConditionalOnWebApplication` | 是 Web 应用 | Web 相关配置 |
-| `@ConditionalOnExpression` | SpEL 表达式为 true | 复杂条件 |
-
-```java
-// RedisAutoConfiguration 示例
-@Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(RedisOperations.class)          // classpath 有 Redis 依赖
-@EnableConfigurationProperties(RedisProperties.class)
+`java
+@Configuration
+@ConditionalOnClass(RedisOperations.class)          // classpath 有 Redis 相关类时生效
+@EnableConfigurationProperties(RedisProperties.class) // 读取 spring.redis.* 配置
 @Import({ LettuceConnectionConfiguration.class, JedisConnectionConfiguration.class })
 public class RedisAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean(name = "redisTemplate") // 用户没有自定义才创建
-    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory factory) {
+    @ConditionalOnMissingBean(name = "redisTemplate")  // 用户没有自定义 redisTemplate 时才创建
+    @ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<Object, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
+        template.setConnectionFactory(connectionFactory);
         return template;
     }
-}
-```
-
----
-
-## 六、手写自定义 Starter
-
-### 目录结构
-
-```
-my-oss-spring-boot-starter/
-├── pom.xml
-└── src/main/
-    ├── java/com/example/oss/
-    │   ├── OssClient.java              # 核心功能类
-    │   ├── OssProperties.java          # 配置属性
-    │   └── OssAutoConfiguration.java   # 自动配置类
-    └── resources/META-INF/
-        └── spring/
-            └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
-```
-
-### Step 1：配置属性类
-
-```java
-@ConfigurationProperties(prefix = "oss")
-public class OssProperties {
-    private String endpoint;
-    private String accessKey;
-    private String secretKey;
-    private String bucketName;
-    // getters & setters
-}
-```
-
-### Step 2：核心功能类
-
-```java
-public class OssClient {
-
-    private final OssProperties properties;
-
-    public OssClient(OssProperties properties) {
-        this.properties = properties;
-    }
-
-    public String upload(String filename, InputStream data) {
-        // 上传逻辑
-        return properties.getEndpoint() + "/" + properties.getBucketName() + "/" + filename;
-    }
-
-    public void delete(String filename) {
-        // 删除逻辑
-    }
-}
-```
-
-### Step 3：自动配置类
-
-```java
-@AutoConfiguration
-@ConditionalOnClass(OssClient.class)
-@EnableConfigurationProperties(OssProperties.class)
-@ConditionalOnProperty(prefix = "oss", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class OssAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean // 允许用户自定义覆盖
-    public OssClient ossClient(OssProperties properties) {
-        return new OssClient(properties);
+    @ConditionalOnMissingBean    // 用户没有自定义 StringRedisTemplate 时才创建
+    @ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
+        return new StringRedisTemplate(connectionFactory);
     }
 }
-```
+`
 
-### Step 4：注册自动配置（Spring Boot 3.x）
+**关键注解速查**：
 
-```
-# src/main/resources/META-INF/spring/
-# org.springframework.boot.autoconfigure.AutoConfiguration.imports
+| 注解 | 条件 |
+|------|------|
+| @ConditionalOnClass | classpath 存在指定类 |
+| @ConditionalOnMissingClass | classpath 不存在指定类 |
+| @ConditionalOnBean | 容器中存在指定 Bean |
+| @ConditionalOnMissingBean | 容器中不存在指定 Bean |
+| @ConditionalOnProperty | 配置属性满足条件 |
+| @ConditionalOnWebApplication | 是 Web 应用 |
+| @ConditionalOnExpression | SpEL 表达式为 true |
 
-com.example.oss.OssAutoConfiguration
-```
+---
 
-### Step 5：使用方
+## 三、自定义 Starter：实现一个限流 Starter
 
-```xml
-<!-- 引入 starter -->
-<dependency>
-    <groupId>com.example</groupId>
-    <artifactId>my-oss-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
+### 3.1 项目结构
 
-```yaml
-# application.yml
-oss:
-  endpoint: https://oss.example.com
-  access-key: AKID_xxx
-  secret-key: secret_xxx
-  bucket-name: my-bucket
-```
+`
+rate-limit-spring-boot-starter/
+├── src/main/java/
+│   └── com/example/ratelimit/
+│       ├── RateLimitAutoConfiguration.java  ← 自动配置类
+│       ├── RateLimitProperties.java          ← 配置属性类
+│       └── RateLimitService.java             ← 核心服务
+└── src/main/resources/
+    └── META-INF/
+        └── spring/
+            └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
+`
 
-```java
-// 直接注入使用
-@RestController
-public class FileController {
+### 3.2 配置属性类
 
+`java
+@ConfigurationProperties(prefix = "ratelimit")
+public class RateLimitProperties {
+    private int maxRequests = 100;   // 默认每秒最大请求数
+    private int windowSeconds = 1;   // 时间窗口（秒）
+    private boolean enabled = true;
+
+    // getters/setters
+}
+`
+
+### 3.3 自动配置类
+
+`java
+@AutoConfiguration
+@ConditionalOnClass(RateLimitService.class)              // 依赖存在时生效
+@ConditionalOnProperty(prefix = "ratelimit", name = "enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(RateLimitProperties.class)
+public class RateLimitAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean   // 用户可以覆盖
+    public RateLimitService rateLimitService(RateLimitProperties props) {
+        return new RateLimitService(props.getMaxRequests(), props.getWindowSeconds());
+    }
+}
+`
+
+### 3.4 注册自动配置
+
+`
+文件：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+内容：
+com.example.ratelimit.RateLimitAutoConfiguration
+`
+
+### 3.5 使用方只需引入依赖
+
+`yaml
+# application.yml（可选，有默认值）
+ratelimit:
+  max-requests: 200
+  window-seconds: 1
+  enabled: true
+`
+
+`java
+@Service
+public class ApiService {
     @Autowired
-    private OssClient ossClient; // 自动装配，无需手动配置
-
-    @PostMapping("/upload")
-    public String upload(@RequestParam MultipartFile file) throws IOException {
-        return ossClient.upload(file.getOriginalFilename(), file.getInputStream());
-    }
+    private RateLimitService rateLimitService;  // 自动注入，无需任何额外配置
 }
-```
+`
 
 ---
 
-## 七、自动装配加载顺序控制
+## 四、调试自动装配
 
-```java
-// 在其他配置之前加载
-@AutoConfiguration(before = DataSourceAutoConfiguration.class)
-public class MyDataSourceAutoConfiguration { }
+当自动配置不生效时：
 
-// 在其他配置之后加载
-@AutoConfiguration(after = JdbcTemplateAutoConfiguration.class)
-public class MyRepositoryAutoConfiguration { }
-```
+`ash
+# 启动时加参数，查看所有自动配置的生效/未生效原因
+java -jar app.jar --debug
+
+# 或在 application.yml 中开启
+logging:
+  level:
+    org.springframework.boot.autoconfigure: DEBUG
+`
+
+输出示例：
+
+`
+============================
+CONDITIONS EVALUATION REPORT
+============================
+Positive matches:
+-----------------
+   RedisAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'RedisOperations' (OnClassCondition)
+
+Negative matches:
+-----------------
+   MongoAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient'
+`
 
 ---
 
-## 八、总结
+## 五、常见坑点
 
-1. `@SpringBootApplication` = `@ComponentScan` + `@Configuration` + `@EnableAutoConfiguration`
-2. `AutoConfigurationImportSelector` 从 `spring.factories`（2.x）或 `AutoConfiguration.imports`（3.x）加载候选配置类
-3. `@Conditional` 系列注解进行条件过滤，只有满足条件的配置才生效
-4. 自定义 Starter 三要素：**配置属性类** + **自动配置类** + **注册文件**
-5. `@ConditionalOnMissingBean` 保证用户可以覆盖默认配置，体现"约定优于配置"精神
+### 坑 1：自定义 Bean 没有覆盖自动配置
+
+`java
+// ❌ 没加 @Primary 或 @ConditionalOnMissingBean，与自动配置的 Bean 产生冲突
+@Bean
+public RedisTemplate<String, Object> redisTemplate() { ... }
+
+// ✅ 加 @Primary 优先使用，或者自动配置类用了 @ConditionalOnMissingBean（大多数情况可以直接定义）
+@Bean
+@Primary
+public RedisTemplate<String, Object> redisTemplate() { ... }
+`
+
+### 坑 2：@ConfigurationProperties 未绑定
+
+`java
+// ❌ 忘记加 @EnableConfigurationProperties 或 @Component
+@ConfigurationProperties(prefix = "myapp")
+public class MyProperties {
+    private String name;  // 值为 null，未从配置文件读取
+}
+
+// ✅ 方式一：在 @SpringBootApplication 类上加 @EnableConfigurationProperties
+// ✅ 方式二：在 Properties 类上加 @Component
+// ✅ 方式三：在 AutoConfiguration 类上加 @EnableConfigurationProperties(MyProperties.class)
+`
+
+---
+
+## 六、总结与延伸
+
+**核心要点**：
+- 自动装配 = @EnableAutoConfiguration + SPI（spring.factories/AutoConfiguration.imports）+ @Conditional 过滤
+- @ConditionalOnMissingBean 保证用户自定义 Bean 优先级高于自动配置
+- 自定义 Starter 三要素：AutoConfiguration 类 + Properties 类 + SPI 注册文件
+
+**延伸阅读方向**：
+- Spring Boot Actuator：通过 /actuator/conditions 端点在线查看条件评估报告
+- Spring Boot 3.x 变化：spring.factories 被 AutoConfiguration.imports 替代，更高效
+- ImportSelector vs ImportBeanDefinitionRegistrar：两种动态注册 Bean 的方式
+- GraalVM Native Image：自动装配在 AOT 编译期的静态分析与优化

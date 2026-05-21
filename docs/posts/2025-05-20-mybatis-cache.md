@@ -1,287 +1,237 @@
-﻿# MyBatis 二级缓存的坑与最佳实践
+﻿# MyBatis 缓存机制：一级缓存、二级缓存与坑
 
-<div class="post-meta">📅 2025-05-20 &nbsp;·&nbsp; 🏷️ <span class="tag">MyBatis</span></div>
+<div class="post-meta">📅 2025-05-20 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
 
-MyBatis 二级缓存是开箱即用但暗藏陷阱的特性，不当使用会导致脏数据。本文系统梳理一/二级缓存机制、常见坑点与正确使用姿势。
-
----
-
-## 一、一级缓存 vs 二级缓存
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      MyBatis 缓存架构                         │
-│                                                              │
-│  二级缓存（Mapper/Namespace 级别）                             │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  UserMapper 缓存空间    OrderMapper 缓存空间           │   │
-│  │  key: namespace+sql+params → value: 查询结果          │   │
-│  └──────────────────────────────────────────────────────┘   │
-│           ↑ commit 后数据进入二级缓存                          │
-│                                                              │
-│  一级缓存（SqlSession 级别）                                   │
-│  ┌─────────────────┐   ┌─────────────────┐                 │
-│  │  SqlSession A   │   │  SqlSession B   │                 │
-│  │  本地缓存 Map    │   │  本地缓存 Map    │                 │
-│  └─────────────────┘   └─────────────────┘                 │
-│           ↑ 同一 SqlSession 内有效，close 后清除               │
-└──────────────────────────────────────────────────────────────┘
-```
+同一个查询执行了两次，第二次没有打出 SQL 日志——是 MyBatis 一级缓存在工作。但数据明明改了，查出来却是旧数据——这也是 MyBatis 缓存的坑。理解 MyBatis 两级缓存的边界，才能在合适的场景开启，在危险的场景关闭。
 
 ---
 
-## 二、一级缓存详解
+## 一、背景：MyBatis 缓存的设计目标
 
-### 工作机制
+MyBatis 缓存分两级：
+- **一级缓存（本地缓存）**：SqlSession 级别，**默认开启且无法关闭**（只能降级为 STATEMENT 级别）
+- **二级缓存（全局缓存）**：Mapper/namespace 级别，**默认关闭**，需显式开启
 
-一级缓存默认开启，**无需配置**，作用域是同一个 `SqlSession`。
+`
+一级缓存（SqlSession 级）：
+同一个 SqlSession → 同一条 SQL + 参数 → 命中缓存，不查 DB
 
-```java
-// 同一 SqlSession 两次相同查询，第二次走缓存
-try (SqlSession session = sqlSessionFactory.openSession()) {
-    User user1 = session.selectOne("findById", 1L); // 查数据库
-    User user2 = session.selectOne("findById", 1L); // 走一级缓存
-    System.out.println(user1 == user2); // true，同一对象！
-}
-```
-
-### 一级缓存失效场景
-
-```java
-// 场景1：执行了 DML 操作（insert/update/delete）
-session.selectOne("findById", 1L);
-session.update("updateUser", user); // 清空当前 namespace 缓存
-session.selectOne("findById", 1L); // 重新查数据库
-
-// 场景2：手动清空
-session.clearCache();
-
-// 场景3：不同 SqlSession（Spring 中每次请求都是新的 SqlSession）
-```
-
-### 与 Spring 集成时的一级缓存
-
-```
-Spring 事务中：同一事务 = 同一 SqlSession → 一级缓存有效
-非事务方法：每次调用 Mapper = 新 SqlSession → 一级缓存无效（用完即关）
-```
-
-```java
-// ✅ 事务中一级缓存生效
-@Transactional
-public void example() {
-    User u1 = userMapper.findById(1L); // 查 DB
-    User u2 = userMapper.findById(1L); // 走一级缓存（同一 SqlSession）
-}
-
-// ❌ 非事务，一级缓存不生效
-public void example() {
-    User u1 = userMapper.findById(1L); // 查 DB（SqlSession1，用完关闭）
-    User u2 = userMapper.findById(1L); // 再查 DB（SqlSession2）
-}
-```
+二级缓存（Namespace 级）：
+不同 SqlSession → 同一 Mapper → 命中跨 Session 的全局缓存
+`
 
 ---
 
-## 三、二级缓存详解
+## 二、一级缓存：默认开启，同 Session 内生效
 
-### 开启方式
+### 2.1 工作机制
 
-```xml
-<!-- mybatis-config.xml 全局开启（默认 true）-->
-<settings>
-    <setting name="cacheEnabled" value="true"/>
-</settings>
-```
+`
+SqlSession.selectOne("getById", 1L)
+    → 生成 CacheKey（statementId + offset + limit + sql + params + env）
+    → 查 PerpetualCache（HashMap）
+    → 命中：直接返回
+    → 未命中：查 DB → 写入缓存 → 返回
 
-```xml
-<!-- UserMapper.xml：在 Mapper 中声明使用缓存 -->
-<mapper namespace="com.example.mapper.UserMapper">
-    <cache
-        eviction="LRU"
-        flushInterval="60000"
-        size="512"
-        readOnly="true"/>
-    <!-- ... -->
-</mapper>
-```
+缓存失效时机：
+- 执行了 INSERT/UPDATE/DELETE（同 Session 内）
+- 调用了 SqlSession.clearCache()
+- SqlSession 关闭
+- 配置了 flushCache=true 的查询
+`
 
-或注解方式：
+### 2.2 Spring 集成后一级缓存的实际效果
 
-```java
-@CacheNamespace(
-    eviction = LruCache.class,
-    flushInterval = 60000,
-    size = 512,
-    readWrite = false
-)
-public interface UserMapper {
-    // ...
-}
-```
+`java
+// 在 Spring 中，每次 @Autowired Mapper 调用，背后都是新的 SqlSession
+// 因此一级缓存的作用范围很小，通常只在同一个事务内有效
 
-### 二级缓存参数说明
-
-| 参数 | 默认值 | 说明 |
-|------|-------|------|
-| `eviction` | LRU | 缓存淘汰策略：LRU/FIFO/SOFT/WEAK |
-| `flushInterval` | 不刷新 | 自动刷新间隔（毫秒） |
-| `size` | 1024 | 最多缓存多少个结果 |
-| `readOnly` | false | true 返回缓存对象引用（快），false 返回深拷贝（安全） |
-
----
-
-## 四、二级缓存的致命坑：脏数据
-
-### 坑1：多表关联查询
-
-这是二级缓存**最大的坑**。
-
-```xml
-<!-- OrderMapper.xml 中的联表查询 -->
-<select id="findWithUser" resultType="OrderVO">
-    SELECT o.*, u.username
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    WHERE o.id = #{id}
-</select>
-```
-
-```
-问题：
-1. 查询 order(id=1) → 结果缓存在 OrderMapper 的缓存空间
-2. 更新 users 表（通过 UserMapper.update）→ 清空 UserMapper 缓存
-3. 再查 order(id=1) → 从 OrderMapper 缓存返回旧数据！
-   此时 username 已经过时，产生脏数据！
-```
-
-**解决方案**：关联查询不使用二级缓存，或使用 `@CacheNamespaceRef`
-
-```java
-// OrderMapper 引用 UserMapper 的缓存空间
-// 这样 UserMapper 的写操作也会刷新 OrderMapper 的缓存
-// 但这种做法耦合严重，不推荐
-@CacheNamespaceRef(UserMapper.class)
-public interface OrderMapper { }
-```
-
-### 坑2：readOnly=false 时 POJO 必须实现 Serializable
-
-```java
-// ❌ 未实现 Serializable，二级缓存序列化失败
-public class User {
-    private Long id;
-    private String username;
-}
-
-// ✅ 实现 Serializable
-public class User implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private Long id;
-    private String username;
-}
-```
-
-### 坑3：事务未提交时二级缓存不可见
-
-```
-二级缓存数据在 SqlSession commit 后才写入
-SqlSession 期间的查询结果存放在 TransactionalCacheManager 的暂存区
-如果事务回滚，这部分数据直接丢弃，不写入二级缓存
-```
-
----
-
-## 五、什么时候该用/不该用
-
-### 适合使用二级缓存
-
-```
-✅ 单表查询，写操作少（如字典表、配置表）
-✅ 数据允许短暂不一致（日志统计、报表）
-✅ 与 Redis 整合作为分布式二级缓存
-```
-
-### 不适合使用二级缓存
-
-```
-❌ 多表关联查询（脏数据风险高）
-❌ 写多读少的表
-❌ 对数据一致性要求高的业务（订单、金额）
-❌ 集群部署（各节点缓存不同步，需集成分布式缓存）
-```
-
----
-
-## 六、与 Redis 集成的正确方案
-
-使用 MyBatis-Redis 或 `mybatis-ehcache` 将二级缓存存到 Redis，解决集群节点缓存不一致问题。
-
-```xml
-<dependency>
-    <groupId>org.mybatis.caches</groupId>
-    <artifactId>mybatis-redis</artifactId>
-    <version>1.0.0-beta2</version>
-</dependency>
-```
-
-```xml
-<!-- UserMapper.xml -->
-<cache type="org.mybatis.caches.redis.RedisCache"/>
-```
-
-```properties
-# redis.properties（mybatis-redis 配置）
-redis.host=localhost
-redis.port=6379
-redis.connectionTimeout=5000
-redis.password=
-redis.database=0
-```
-
-但实际上，**生产中推荐直接用 Spring Cache + Redis**，绕开 MyBatis 二级缓存：
-
-```java
 @Service
 public class UserService {
-
     @Autowired
     private UserMapper userMapper;
 
-    // 用 Spring Cache 代替 MyBatis 二级缓存，粒度更细，控制更精确
-    @Cacheable(cacheNames = "users", key = "#id", unless = "#result == null")
-    public User findById(Long id) {
-        return userMapper.selectById(id);
-    }
-
-    @CacheEvict(cacheNames = "users", key = "#user.id")
-    public void update(User user) {
-        userMapper.updateById(user);
+    @Transactional
+    public void process(Long userId) {
+        User u1 = userMapper.findById(userId);  // 查 DB，结果放入一级缓存
+        User u2 = userMapper.findById(userId);  // 命中一级缓存，不查 DB
+        // u1 == u2（同一个对象引用！）← 危险：修改 u1 会影响 u2
     }
 }
-```
+`
+
+**一级缓存的坑**：返回的是缓存中的**同一个对象引用**，修改会影响缓存数据。
 
 ---
 
-## 七、最佳实践总结
+## 三、二级缓存：显式开启，跨 Session 生效
 
-```
-1. 一级缓存（默认开启，不需要管）
-   ├─ Spring 事务内：有效，减少 DB 查询
-   └─ 非事务方法：无效，每次新 SqlSession
+### 3.1 开启方式
 
-2. 二级缓存
-   ├─ 非联表查询的简单字典/配置数据：可以开
-   ├─ 联表查询：强烈不建议开
-   └─ 集群部署：必须配合 Redis 或直接用 Spring Cache
+`xml
+<!-- mybatis-config.xml 全局开关 -->
+<settings>
+    <setting name="cacheEnabled" value="true"/>  <!-- 默认已是 true -->
+</settings>
+`
 
-3. 推荐替代方案
-   └─ Spring Cache + Redis：比 MyBatis 二级缓存更灵活、可控、易维护
-```
+`xml
+<!-- UserMapper.xml：在需要缓存的 Mapper 中声明 -->
+<cache
+    eviction="LRU"           <!-- 淘汰策略：LRU/FIFO/SOFT/WEAK -->
+    flushInterval="60000"   <!-- 刷新间隔（毫秒），不设置则不自动刷新 -->
+    size="512"              <!-- 最多缓存 512 个引用 -->
+    readOnly="true"/>       <!-- true=返回缓存对象本身（性能高），false=返回深拷贝（安全）-->
+`
 
-| 场景 | 推荐方案 |
-|------|---------|
-| 单机、字典表 | MyBatis 二级缓存（简单） |
-| 集群、业务缓存 | Spring Cache + Redis |
-| 高一致性要求 | 不缓存，或先删缓存再查 |
-| 多表联查 | 禁用二级缓存，用 Spring Cache 手动管理 |
+或使用注解：
+
+`java
+@CacheNamespace(eviction = LruCache.class, flushInterval = 60000, size = 512, readWrite = false)
+public interface UserMapper { }
+`
+
+### 3.2 使用要求
+
+二级缓存要求**实体类实现 Serializable**（缓存到磁盘或序列化时需要）：
+
+`java
+public class User implements Serializable {
+    private static final long serialVersionUID = 1L;
+    // ...
+}
+`
+
+### 3.3 二级缓存的失效
+
+`xml
+<!-- 默认：所有查询语句都使用缓存，所有写操作都刷新缓存 -->
+<select id="findById" resultType="User">
+    SELECT * FROM user WHERE id = #{id}
+</select>
+
+<!-- flushCache=true：该语句执行后强制刷新缓存 -->
+<select id="findSpecial" flushCache="true" resultType="User">
+    SELECT * FROM user WHERE status = 'active'
+</select>
+
+<!-- useCache=false：该语句不使用二级缓存 -->
+<select id="findRealtime" useCache="false" resultType="User">
+    SELECT balance FROM account WHERE id = #{id}
+</select>
+`
+
+---
+
+## 四、自定义二级缓存：集成 Redis
+
+MyBatis 二级缓存是进程内缓存，不适合分布式系统。可以实现 Cache 接口集成 Redis：
+
+`java
+public class RedisMybatisCache implements Cache {
+    private final String id;  // namespace id
+    private static RedisTemplate<Object, Object> redisTemplate;
+    private static final long TTL_SECONDS = 3600;
+
+    public RedisMybatisCache(String id) {
+        this.id = id;
+    }
+
+    @Override
+    public String getId() { return id; }
+
+    @Override
+    public void putObject(Object key, Object value) {
+        redisTemplate.opsForHash().put(id, key.toString(), value);
+        redisTemplate.expire(id, TTL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public Object getObject(Object key) {
+        return redisTemplate.opsForHash().get(id, key.toString());
+    }
+
+    @Override
+    public Object removeObject(Object key) {
+        return redisTemplate.opsForHash().delete(id, key.toString());
+    }
+
+    @Override
+    public void clear() {
+        redisTemplate.delete(id);
+    }
+
+    @Override
+    public int getSize() {
+        return redisTemplate.opsForHash().size(id).intValue();
+    }
+
+    // Spring 注入 RedisTemplate（需要静态注入）
+    public static void setRedisTemplate(RedisTemplate<Object, Object> template) {
+        RedisMybatisCache.redisTemplate = template;
+    }
+}
+`
+
+`xml
+<!-- 使用自定义 Redis 缓存 -->
+<cache type="com.example.cache.RedisMybatisCache"/>
+`
+
+---
+
+## 五、对比：一级缓存 vs 二级缓存
+
+| 特性 | 一级缓存 | 二级缓存 |
+|------|---------|---------|
+| 作用范围 | SqlSession 内 | Mapper namespace 内（跨 Session）|
+| 默认状态 | 开启（不可关闭）| 关闭 |
+| 分布式支持 | ❌ | ❌（默认）/ ✅（自定义 Redis Cache）|
+| 缓存粒度 | SQL + 参数 + 环境 | SQL + 参数 |
+| 失效触发 | 同 Session 的 DML，Session 关闭 | 任意 Session 的 DML（Namespace 内）|
+| 适用场景 | 同事务内重复查询 | 读多写少的静态数据 |
+
+---
+
+## 六、常见坑点与最佳实践
+
+### 坑 1：一级缓存在脏读场景
+
+`java
+// 线程 A 读取 user，缓存在一级缓存
+User u = mapper.findById(1L);  // 一级缓存：{id:1, name:"Alice"}
+
+// 线程 B（另一个 SqlSession）更新了数据库
+// UPDATE user SET name='Bob' WHERE id=1
+
+// 线程 A 再次读取，命中一级缓存，得到旧数据
+User u2 = mapper.findById(1L);  // ← 得到 "Alice"，但 DB 已是 "Bob"
+`
+
+### 坑 2：二级缓存跨 namespace 的脏读
+
+`xml
+<!-- ❌ OrderMapper 和 UserMapper 都能查 user 表，但缓存不互通 -->
+<!-- UserMapper 缓存了 user，OrderMapper 更新了 user，UserMapper 缓存变脏 -->
+`
+
+**建议**：涉及多表关联查询的 Mapper 不要开启二级缓存。
+
+### 坑 3：实体类不实现 Serializable 导致异常
+
+**最佳实践**：写多读少的 OLTP 业务，不要开启 MyBatis 二级缓存；读多写少的字典/配置数据，可以开启配合 Redis。
+
+---
+
+## 七、总结与延伸
+
+**核心要点**：
+- 一级缓存：SqlSession 级别，Spring 集成后作用范围 = 一个事务；返回同一对象引用
+- 二级缓存：Namespace 级别，默认关闭，适合读多写少场景；实体类需要 Serializable
+- 生产环境分布式系统中，MyBatis 原生缓存不够用，结合 Spring Cache + Redis 更可控
+
+**延伸阅读方向**：
+- MyBatis Plus 扩展：@TableLogic 逻辑删除、@Version 乐观锁的缓存失效影响
+- L2 Cache 与分布式一致性：使用 Canal 监听 binlog 主动淘汰缓存
+- MyBatis 插件机制：Interceptor 实现数据权限、SQL 审计、分页等功能
+- MyBatis 与 Spring 事务整合：SqlSessionTemplate 如何保证事务边界内的 Session 一致性

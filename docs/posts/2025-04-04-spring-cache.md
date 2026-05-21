@@ -1,331 +1,235 @@
-﻿# Spring Cache 注解使用与缓存穿透防护
+﻿# Spring Cache：声明式缓存的正确使用姿势
 
-<div class="post-meta">📅 2025-04-04 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span> <span class="tag">Redis</span> <span class="tag">缓存</span></div>
+<div class="post-meta">📅 2025-04-04 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
 
-Spring Cache 提供了统一的缓存抽象，配合 Redis + Caffeine 两级缓存可构建高性能的防穿透方案。
-
----
-
-## 一、基础注解速览
-
-| 注解 | 作用 | 执行时机 |
-|------|------|---------|
-| `@Cacheable` | 查询时先读缓存，命中则返回，未命中则执行方法并写入缓存 | 方法执行前判断 |
-| `@CachePut` | 总是执行方法，并将结果写入缓存（用于更新） | 方法执行后 |
-| `@CacheEvict` | 删除缓存 | 方法执行前或后 |
-| `@Caching` | 组合多个缓存操作 | 组合 |
-| `@CacheConfig` | 类级别统一配置缓存名称 | 类级别 |
+@Cacheable 加上去，查询速度确实快了，但缓存不更新、Key 冲突、缓存雪崩接踵而至。Spring Cache 抽象层让切换 Redis/Caffeine 变得简单，但缓存的难题从来不在存取，而在一致性和失效策略。
 
 ---
 
-## 二、@Cacheable 详解
+## 一、背景：Spring Cache 解决什么问题
 
-```java
+没有 Spring Cache 时，缓存逻辑侵入业务代码：
+
+`java
+// ❌ 缓存逻辑与业务逻辑耦合
+public User getUser(Long id) {
+    String key = "user:" + id;
+    User cached = redisTemplate.opsForValue().get(key);
+    if (cached != null) return cached;
+    User user = userDao.findById(id);
+    redisTemplate.opsForValue().set(key, user, 30, TimeUnit.MINUTES);
+    return user;
+}
+`
+
+Spring Cache 通过 AOP 将缓存逻辑从业务中剥离：
+
+`java
+// ✅ 业务代码只关注查询
+@Cacheable(value = "users", key = "#id")
+public User getUser(Long id) {
+    return userDao.findById(id);
+}
+`
+
+---
+
+## 二、四个核心注解
+
+### @Cacheable：读缓存（有则返回缓存，无则执行方法并缓存结果）
+
+`java
 @Service
 public class ProductService {
 
-    // 基本用法：以 id 为 key，缓存到 "products" 命名空间
-    @Cacheable(cacheNames = "products", key = "#id")
-    public Product findById(Long id) {
-        return productMapper.selectById(id); // 仅在缓存未命中时执行
+    // 基本用法：缓存名 "products"，key 为参数 id
+    @Cacheable(value = "products", key = "#id")
+    public Product getById(Long id) {
+        return productDao.findById(id);
     }
 
-    // 条件缓存：只缓存 id > 0 的查询
-    @Cacheable(cacheNames = "products", key = "#id", condition = "#id > 0")
-    public Product findByIdConditional(Long id) {
-        return productMapper.selectById(id);
+    // 条件缓存：只有 VIP 用户的查询才缓存
+    @Cacheable(value = "products", key = "#userId + ':' + #productId",
+               condition = "#userId != null")
+    public Product getByUser(Long userId, Long productId) {
+        return productDao.findByUser(userId, productId);
     }
 
-    // unless：方法返回 null 时不缓存
-    @Cacheable(cacheNames = "products", key = "#id", unless = "#result == null")
-    public Product findByIdSafe(Long id) {
-        return productMapper.selectById(id);
-    }
-
-    // 复合 key
-    @Cacheable(cacheNames = "products", key = "#category + ':' + #page")
-    public List<Product> findByCategory(String category, int page) {
-        return productMapper.selectByCategory(category, page);
+    // unless：结果为 null 时不缓存
+    @Cacheable(value = "products", key = "#id", unless = "#result == null")
+    public Product getOrNull(Long id) {
+        return productDao.findByIdOrNull(id);
     }
 }
-```
+`
+
+### @CachePut：更新缓存（总是执行方法，并用返回值更新缓存）
+
+`java
+// 更新操作：更新 DB 的同时更新缓存，保持一致性
+@CachePut(value = "products", key = "#product.id")
+public Product update(Product product) {
+    return productDao.update(product);  // 返回值会写入缓存
+}
+`
+
+### @CacheEvict：删除缓存
+
+`java
+// 删除单个 key
+@CacheEvict(value = "products", key = "#id")
+public void delete(Long id) {
+    productDao.deleteById(id);
+}
+
+// 清空 products 缓存下的所有 key（allEntries=true）
+@CacheEvict(value = "products", allEntries = true)
+public void clearAll() { }
+
+// beforeInvocation=true：方法执行前就删缓存（避免方法异常时缓存未清）
+@CacheEvict(value = "products", key = "#id", beforeInvocation = true)
+public void deleteWithPreEvict(Long id) {
+    productDao.deleteById(id);
+}
+`
+
+### @Caching：组合多个缓存操作
+
+`java
+@Caching(
+    evict = {
+        @CacheEvict(value = "products", key = "#id"),
+        @CacheEvict(value = "productList", allEntries = true)
+    }
+)
+public void deleteProduct(Long id) {
+    productDao.deleteById(id);
+}
+`
 
 ---
 
-## 三、@CachePut 与 @CacheEvict
+## 三、与 Redis 集成配置
 
-```java
-@Service
-@CacheConfig(cacheNames = "products") // 类级别统一设置缓存名
-public class ProductService {
-
-    // 更新：总是执行方法，同时更新缓存（保持缓存与数据库一致）
-    @CachePut(key = "#product.id")
-    public Product update(Product product) {
-        productMapper.updateById(product);
-        return product;
-    }
-
-    // 删除：执行方法后清除指定 key 的缓存
-    @CacheEvict(key = "#id")
-    public void delete(Long id) {
-        productMapper.deleteById(id);
-    }
-
-    // 清空整个缓存命名空间（谨慎使用）
-    @CacheEvict(allEntries = true)
-    public void clearAll() {
-        // 批量操作后清空全部
-    }
-
-    // beforeInvocation = true：方法执行前删缓存（即使方法抛异常也删）
-    @CacheEvict(key = "#id", beforeInvocation = true)
-    public void deleteBeforeMethod(Long id) {
-        productMapper.deleteById(id);
-    }
-}
-```
-
----
-
-## 四、@Caching 组合操作
-
-```java
-@Service
-public class UserService {
-
-    // 一次操作：更新 user 缓存 + 清除 user-list 缓存
-    @Caching(
-        put  = { @CachePut(cacheNames = "users", key = "#user.id") },
-        evict = { @CacheEvict(cacheNames = "user-list", allEntries = true) }
-    )
-    public User save(User user) {
-        userMapper.insertOrUpdate(user);
-        return user;
-    }
-}
-```
-
----
-
-## 五、自定义 KeyGenerator
-
-```java
-@Component("myKeyGenerator")
-public class MyKeyGenerator implements KeyGenerator {
-
-    @Override
-    public Object generate(Object target, Method method, Object... params) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(target.getClass().getSimpleName()).append(":");
-        sb.append(method.getName()).append(":");
-        for (Object param : params) {
-            sb.append(param).append("_");
-        }
-        return sb.toString();
-    }
-}
-
-// 使用自定义 KeyGenerator
-@Cacheable(cacheNames = "products", keyGenerator = "myKeyGenerator")
-public List<Product> search(String keyword, String category, int page) {
-    return productMapper.search(keyword, category, page);
-}
-```
-
----
-
-## 六、缓存穿透、击穿、雪崩
-
-```
-缓存穿透：查询不存在的数据 → 每次都打到数据库
-         ┌────────────────────────────────────────────────────┐
-         │ 解决：缓存空值 / 布隆过滤器                          │
-         └────────────────────────────────────────────────────┘
-
-缓存击穿：热点 key 过期 → 大量请求同时打到数据库
-         ┌────────────────────────────────────────────────────┐
-         │ 解决：互斥锁（只让一个请求重建缓存）/ 永不过期         │
-         └────────────────────────────────────────────────────┘
-
-缓存雪崩：大量 key 同时过期 / Redis 宕机 → 数据库压力骤增
-         ┌────────────────────────────────────────────────────┐
-         │ 解决：过期时间加随机值 / Redis 集群 / 熔断降级         │
-         └────────────────────────────────────────────────────┘
-```
-
-### 穿透防护：缓存空值
-
-```java
-@Service
-public class ProductService {
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Autowired
-    private ProductMapper productMapper;
-
-    private static final String NULL_VALUE = "NULL";
-    private static final long NULL_TTL = 2 * 60; // 空值缓存2分钟
-
-    public Product findById(Long id) {
-        String key = "product:" + id;
-        String cached = redisTemplate.opsForValue().get(key);
-
-        if (cached != null) {
-            if (NULL_VALUE.equals(cached)) {
-                return null; // 缓存了空值，直接返回 null，不查 DB
-            }
-            return JSON.parseObject(cached, Product.class);
-        }
-
-        // 查数据库
-        Product product = productMapper.selectById(id);
-
-        if (product == null) {
-            // 缓存空值，防止穿透
-            redisTemplate.opsForValue().set(key, NULL_VALUE, NULL_TTL, TimeUnit.SECONDS);
-            return null;
-        }
-
-        redisTemplate.opsForValue().set(key, JSON.toJSONString(product), 30, TimeUnit.MINUTES);
-        return product;
-    }
-}
-```
-
-### 击穿防护：互斥锁重建
-
-```java
-public Product findByIdWithLock(Long id) {
-    String key = "product:" + id;
-    String lockKey = "lock:product:" + id;
-
-    // 先查缓存
-    String cached = redisTemplate.opsForValue().get(key);
-    if (cached != null) {
-        return NULL_VALUE.equals(cached) ? null : JSON.parseObject(cached, Product.class);
-    }
-
-    // 缓存未命中，尝试获取互斥锁
-    Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
-
-    if (Boolean.TRUE.equals(locked)) {
-        try {
-            // double check：获取锁后再查一次缓存
-            cached = redisTemplate.opsForValue().get(key);
-            if (cached != null) {
-                return NULL_VALUE.equals(cached) ? null : JSON.parseObject(cached, Product.class);
-            }
-            Product product = productMapper.selectById(id);
-            String value = product == null ? NULL_VALUE : JSON.toJSONString(product);
-            long ttl = product == null ? NULL_TTL : 30 * 60;
-            redisTemplate.opsForValue().set(key, value, ttl, TimeUnit.SECONDS);
-            return product;
-        } finally {
-            redisTemplate.delete(lockKey); // 释放锁
-        }
-    } else {
-        // 未获取到锁，等待后重试
-        try { Thread.sleep(50); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        return findByIdWithLock(id);
-    }
-}
-```
-
-### 雪崩防护：随机过期时间
-
-```java
+`java
 @Configuration
-public class RedisCacheConfig {
+@EnableCaching
+public class CacheConfig {
 
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(30))  // 基础过期时间
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(
-                    new GenericJackson2JsonRedisSerializer()
-                )
-            );
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // 默认缓存配置
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .entryTtl(Duration.ofMinutes(30))              // 全局 TTL 30 分钟
+            .serializeKeysWith(RedisSerializationContext.SerializationPair
+                .fromSerializer(new StringRedisSerializer()))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair
+                .fromSerializer(new GenericJackson2JsonRedisSerializer()))  // JSON 序列化
+            .disableCachingNullValues();                   // 不缓存 null（避免缓存穿透时需另处理）
 
-        return RedisCacheManager.builder(factory)
-            .cacheDefaults(config)
-            // 各缓存设置不同过期时间，避免同时过期
-            .withCacheConfiguration("products", config.entryTtl(
-                Duration.ofMinutes(30 + new Random().nextInt(10))))
-            .withCacheConfiguration("users", config.entryTtl(
-                Duration.ofMinutes(60 + new Random().nextInt(15))))
+        // 不同缓存区域使用不同 TTL
+        Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
+        cacheConfigs.put("products", defaultConfig.entryTtl(Duration.ofHours(1)));
+        cacheConfigs.put("userSessions", defaultConfig.entryTtl(Duration.ofDays(7)));
+
+        return RedisCacheManager.builder(connectionFactory)
+            .cacheDefaults(defaultConfig)
+            .withInitialCacheConfigurations(cacheConfigs)
             .build();
     }
 }
-```
+`
 
 ---
 
-## 七、Caffeine + Redis 两级缓存
+## 四、对比：Spring Cache vs 手动 Redis 操作
 
-```
-请求
- │
- ▼
-L1 Caffeine（本地内存缓存，微秒级）
- │  命中 → 直接返回
- │  未命中
- ▼
-L2 Redis（分布式缓存，毫秒级）
- │  命中 → 回填 L1，返回
- │  未命中
- ▼
-数据库（回填 L1 + L2）
-```
+| 特性 | Spring Cache | 手动 RedisTemplate |
+|------|-------------|-------------------|
+| 代码侵入性 | 低（注解声明式）| 高（业务逻辑混入缓存逻辑）|
+| 切换缓存实现 | 一行配置（换 CacheManager）| 大量代码改动 |
+| 细粒度控制 | 有限（注解表达能力有限）| 完全控制 |
+| Pipeline / Lua 脚本 | ❌ 不支持 | ✅ 支持 |
+| 复杂 Key 结构（Hash/Set）| ❌ 只支持 String | ✅ 全数据结构 |
+| 适用场景 | 简单 K/V 缓存，查询缓存 | 复杂缓存逻辑，分布式锁 |
 
-```java
-@Configuration
-public class TwoLevelCacheConfig {
+---
 
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory factory) {
-        // L1：Caffeine 本地缓存（最大1000条，5分钟过期）
-        CaffeineCache caffeineCache = new CaffeineCache("products",
-            Caffeine.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .recordStats()
-                .build()
-        );
+## 五、常见坑点与最佳实践
 
-        // L2：Redis 分布式缓存
-        RedisCacheConfiguration redisConfig = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(30));
-        RedisCacheManager redisCacheManager = RedisCacheManager.builder(factory)
-            .cacheDefaults(redisConfig).build();
+### 坑 1：同类方法内部调用缓存不生效（AOP 代理问题）
 
-        // 组合成两级缓存（实际项目可使用 layering-cache 等框架）
-        CompositeCacheManager compositeCacheManager = new CompositeCacheManager(
-            new CaffeineCacheManager() {{ addCache(caffeineCache); }},
-            redisCacheManager
-        );
-        compositeCacheManager.setFallbackToNoOpCache(false);
-        return compositeCacheManager;
+`java
+@Service
+public class ProductService {
+    public Product getDetail(Long id) {
+        // ❌ 内部调用，绕过代理，@Cacheable 不生效
+        return this.getById(id);
+    }
+
+    @Cacheable(value = "products", key = "#id")
+    public Product getById(Long id) {
+        return productDao.findById(id);
     }
 }
-```
+`
+
+### 坑 2：Key 设计不合理导致缓存污染
+
+`java
+// ❌ 不同方法用同一个 key 名，互相覆盖
+@Cacheable(value = "data", key = "#id")  // OrderService
+@Cacheable(value = "data", key = "#id")  // UserService（同一 Redis key！）
+
+// ✅ 用 value 区分不同缓存区域，或加前缀
+@Cacheable(value = "orders", key = "#id")
+@Cacheable(value = "users", key = "#id")
+`
+
+### 坑 3：缓存穿透（结果为 null 不缓存）
+
+`java
+// ❌ 查询结果为 null，每次都穿透到 DB
+@Cacheable(value = "products", key = "#id", unless = "#result == null")
+public Product getById(Long id) {
+    return productDao.findById(id);  // 返回 null 不缓存，下次继续查 DB
+}
+
+// ✅ 缓存空对象（需定义空对象）
+@Cacheable(value = "products", key = "#id")
+public Product getById(Long id) {
+    Product product = productDao.findById(id);
+    return product != null ? product : Product.EMPTY;  // 缓存空对象占位
+}
+`
+
+### 坑 4：@CachePut 与 @Cacheable Key 不一致
+
+`java
+// ❌ Key 不一致，更新缓存但读取的是旧 Key 的缓存
+@Cacheable(value = "users", key = "#id")
+public User getUser(Long id) { ... }
+
+@CachePut(value = "users", key = "#user.userId")  // ❌ Key 不同！
+public User updateUser(User user) { ... }
+
+// ✅ 确保 Key 一致
+@CachePut(value = "users", key = "#user.id")  // ✅ 与 @Cacheable 相同
+public User updateUser(User user) { ... }
+`
 
 ---
 
-## 八、总结
+## 六、总结与延伸
 
-| 问题 | 解决方案 |
-|------|---------|
-| 缓存穿透 | 缓存空值 / 布隆过滤器（BloomFilter） |
-| 缓存击穿 | 互斥锁（Redis SETNX）/ 逻辑过期 |
-| 缓存雪崩 | 过期时间加随机值 / Redis 集群 / 熔断 |
-| 数据一致性 | 先更新DB再删缓存（Cache-Aside） |
-| 性能优化 | L1 Caffeine + L2 Redis 两级缓存 |
+**核心要点**：
+- @Cacheable：读缓存；@CachePut：写缓存；@CacheEvict：删缓存
+- Spring Cache 是缓存操作的抽象层，底层实现（Redis/Caffeine/EhCache）可一键切换
+- 内部方法调用绕过 AOP 代理，缓存不生效
+- Key 设计：用 alue 区分缓存空间，Key 在同一 value 内保持唯一且一致
 
-- `@Cacheable` 不执行方法直接返回缓存，适合读多写少场景
-- `@CachePut` 总是执行并更新缓存，用于写操作
-- `@CacheEvict` 删除缓存，写操作后及时清理
-- 生产中推荐 `unless = "#result == null"` 避免缓存 null 引发误判
+**延伸阅读方向**：
+- Caffeine 本地缓存：高性能本地缓存，适合热点数据，与 Spring Cache 集成
+- 多级缓存架构：本地缓存（Caffeine）+ 分布式缓存（Redis）的两级方案
+- 缓存击穿/穿透/雪崩：三大缓存问题的成因与解决方案
+- Canal + MQ：数据库 binlog 订阅实现缓存自动失效，保证强一致性

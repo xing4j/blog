@@ -1,313 +1,261 @@
-﻿# MyBatis-Plus 多租户插件实现原理
+﻿# MyBatis Plus 多租户：一个注解实现数据隔离
 
-<div class="post-meta">📅 2025-08-17 &nbsp;·&nbsp; 🏷️ <span class="tag">MyBatis-Plus</span></div>
+<div class="post-meta">📅 2025-08-17 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
 
-多租户是 SaaS 系统的核心需求。MyBatis-Plus 的 `TenantLineInnerInterceptor` 通过 SQL 拦截，自动追加 `tenant_id` 条件，无需在每个 Mapper 中手动添加。
-
----
-
-## 一、多租户核心流程
-
-```
-HTTP 请求（Header: X-Tenant-Id: tenant_001）
-        │
-        ▼
-TenantContextHolder.set("tenant_001")  ← Filter 或 Interceptor 中设置
-        │
-        ▼
-业务代码调用 Mapper
-  userMapper.selectList(...)
-        │
-        ▼
-MybatisPlusInterceptor
-  └─ TenantLineInnerInterceptor
-            │ 解析 SQL 语句（JSqlParser）
-            │ 调用 TenantLineHandler.getTenantId()
-            │ 自动追加 WHERE tenant_id = 'tenant_001'
-            ▼
-  最终 SQL: SELECT * FROM user WHERE ... AND tenant_id = 'tenant_001'
-        │
-        ▼
-数据库执行
-```
+SaaS 系统要求每个租户只能访问自己的数据，最直接的做法是每条 SQL 手动加 WHERE tenant_id = ?——这既容易遗漏，又让代码充满噪音。MyBatis Plus 的多租户插件通过拦截器自动注入租户条件，让数据隔离变成"零侵入"的事。
 
 ---
 
-## 二、依赖与基础配置
+## 一、背景：多租户的三种数据隔离方案
 
-```xml
+| 方案 | 实现 | 隔离强度 | 成本 |
+|------|------|---------|------|
+| 独立数据库 | 每租户独立 DB | ⭐⭐⭐⭐⭐ | 运维成本极高 |
+| 独立 Schema | 同一 DB，不同 Schema | ⭐⭐⭐⭐ | 表结构变更麻烦 |
+| 共享表（行隔离）| 同一张表，	enant_id 列区分 | ⭐⭐⭐ | 开发最简单 |
+
+**行隔离方案**是中小型 SaaS 的常见选择，MyBatis Plus 的多租户插件正是针对这种方案设计。
+
+---
+
+## 二、MyBatis Plus 多租户插件原理
+
+`
+SQL 执行流程：
+Mapper.selectList()
+    ↓
+MybatisPlusInterceptor（拦截器链）
+    ↓
+TenantLineInnerInterceptor（多租户内部拦截器）
+    ↓
+JSQLParser 解析 SQL → 注入 WHERE tenant_id = #{currentTenantId}
+    ↓
+执行最终 SQL
+`
+
+MyBatis Plus 使用 **JSQLParser** 解析 SQL 语法树，将租户条件注入到 WHERE、JOIN ON、INSERT 等子句中，无需修改任何业务代码。
+
+---
+
+## 三、完整集成步骤
+
+### 3.1 添加依赖
+
+`xml
 <dependency>
     <groupId>com.baomidou</groupId>
     <artifactId>mybatis-plus-boot-starter</artifactId>
     <version>3.5.5</version>
 </dependency>
-<!-- SQL 解析依赖（自动传递，但版本需匹配）-->
-<dependency>
-    <groupId>com.github.jsqlparser</groupId>
-    <artifactId>jsqlparser</artifactId>
-    <version>4.6</version>
-</dependency>
-```
+`
 
----
+### 3.2 实现 TenantLineHandler
 
-## 三、TenantContextHolder：线程安全存取租户 ID
+`java
+@Component
+public class TenantContext {
+    // 使用 ThreadLocal 存储当前请求的租户 ID
+    private static final ThreadLocal<Long> CURRENT_TENANT = new ThreadLocal<>();
 
-```java
-/**
- * 基于 ThreadLocal 的租户上下文，需在请求结束后清理防止内存泄漏
- */
-public class TenantContextHolder {
-
-    private static final ThreadLocal<String> TENANT_ID = new InheritableThreadLocal<>();
-
-    public static void setTenantId(String tenantId) {
-        TENANT_ID.set(tenantId);
+    public static void setTenantId(Long tenantId) {
+        CURRENT_TENANT.set(tenantId);
     }
 
-    public static String getTenantId() {
-        return TENANT_ID.get();
+    public static Long getTenantId() {
+        return CURRENT_TENANT.get();
     }
 
     public static void clear() {
-        TENANT_ID.remove(); // 必须调用！防止线程池中的线程污染
+        CURRENT_TENANT.remove();  // 防止内存泄漏
     }
 }
-```
 
----
-
-## 四、实现 TenantLineHandler
-
-```java
 @Component
-public class MyTenantLineHandler implements TenantLineHandler {
+public class CustomTenantHandler implements TenantLineHandler {
 
-    /**
-     * 返回当前租户 ID（SQL 追加的值）
-     * 框架会调用此方法获取 tenant_id 的值
-     */
     @Override
     public Expression getTenantId() {
-        String tenantId = TenantContextHolder.getTenantId();
+        // 从 ThreadLocal 获取当前租户 ID
+        Long tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
-            throw new RuntimeException("租户ID不能为空");
+            throw new IllegalStateException("未设置租户 ID，请检查请求上下文");
         }
-        // 返回字符串类型的租户 ID
-        return new StringValue(tenantId);
+        return new LongValue(tenantId);
     }
 
-    /**
-     * 返回 tenant_id 字段名（表中的列名）
-     */
     @Override
     public String getTenantIdColumn() {
-        return "tenant_id";
+        return "tenant_id";  // 租户字段名
     }
 
-    /**
-     * 是否忽略该表的多租户过滤
-     * true = 忽略（不追加 tenant_id 条件）
-     */
     @Override
     public boolean ignoreTable(String tableName) {
-        // 公共表、字典表等不需要租户过滤
-        return Arrays.asList(
-            "sys_dict",
-            "sys_config",
-            "flyway_schema_history"
-        ).contains(tableName.toLowerCase());
+        // 不需要租户隔离的表（如系统配置表、租户信息表本身）
+        return Set.of("sys_config", "tenant_info", "sys_dict").contains(tableName.toLowerCase());
     }
 }
-```
+`
 
----
+### 3.3 注册插件
 
-## 五、注册拦截器（与分页插件共存）
-
-```java
+`java
 @Configuration
 public class MybatisPlusConfig {
 
-    @Autowired
-    private MyTenantLineHandler tenantLineHandler;
-
     @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+    public MybatisPlusInterceptor mybatisPlusInterceptor(CustomTenantHandler tenantHandler) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
 
-        // 1. 先添加多租户拦截器（顺序很重要）
-        interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(tenantLineHandler));
+        // 多租户插件（必须放在分页插件之前）
+        interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(tenantHandler));
 
-        // 2. 再添加分页拦截器
+        // 分页插件
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
-
-        // 3. 可选：乐观锁拦截器
-        interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
 
         return interceptor;
     }
 }
-```
+`
 
-> **顺序说明**：多租户拦截器应在分页拦截器之前，因为分页需要在已追加 tenant_id 条件的 SQL 基础上统计 count。
+### 3.4 Web 拦截器：从请求中提取租户 ID
 
----
-
-## 六、Web Filter 设置/清理租户上下文
-
-```java
+`java
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
-public class TenantFilter implements Filter {
-
-    private static final String TENANT_HEADER = "X-Tenant-Id";
+public class TenantInterceptor implements HandlerInterceptor {
 
     @Override
-    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain)
-            throws IOException, ServletException {
-        HttpServletRequest request = (HttpServletRequest) req;
-        String tenantId = request.getHeader(TENANT_HEADER);
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response, Object handler) {
+        // 方式 A：从 JWT Token 中获取租户 ID
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            Long tenantId = JwtUtils.extractTenantId(token.substring(7));
+            TenantContext.setTenantId(tenantId);
+        }
+        return true;
+    }
 
-        if (StringUtils.hasText(tenantId)) {
-            TenantContextHolder.setTenantId(tenantId);
-        }
-        try {
-            chain.doFilter(req, resp);
-        } finally {
-            TenantContextHolder.clear(); // 必须清理，防止线程复用时污染
-        }
+    @Override
+    public void afterCompletion(HttpServletRequest request,
+                                HttpServletResponse response, Object handler, Exception ex) {
+        TenantContext.clear();  // 请求结束后清理 ThreadLocal
     }
 }
-```
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+    @Autowired
+    private TenantInterceptor tenantInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(tenantInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/auth/**");  // 登录接口不需要租户上下文
+    }
+}
+`
+
+### 3.5 效果验证
+
+`java
+// 业务代码无需任何改动
+@Service
+public class OrderService {
+    @Autowired
+    private OrderMapper orderMapper;
+
+    public List<Order> listOrders() {
+        // 实际执行：SELECT * FROM orders WHERE tenant_id = 123
+        // ← 自动注入，业务层完全无感
+        return orderMapper.selectList(null);
+    }
+}
+`
 
 ---
 
-## 七、SQL 自动改写效果
+## 四、特殊场景处理
 
-```java
-// 原始代码
-userMapper.selectList(
-    new LambdaQueryWrapper<User>().eq(User::getStatus, 1)
-);
+### 4.1 临时忽略租户过滤（超管查所有租户数据）
 
-// 实际执行的 SQL（自动追加 tenant_id）
-// SELECT * FROM user WHERE status = 1 AND tenant_id = 'tenant_001'
+`java
+// 方式 A：使用 @InterceptorIgnore 注解（Mapper 方法级别）
+@Mapper
+public interface OrderMapper extends BaseMapper<Order> {
+    @InterceptorIgnore(tenantLine = "true")
+    List<Order> selectAllTenants();  // 忽略租户过滤
+}
 
-// INSERT 也会自动追加
-userMapper.insert(new User().setName("张三"));
-// INSERT INTO user (name, tenant_id) VALUES ('张三', 'tenant_001')
+// 方式 B：编程式临时关闭（线程级别）
+TenantContext.setTenantId(null);  // 设置 null 时需要在 getTenantId() 中处理
+// 或者通过标志位跳过过滤
+`
 
-// UPDATE
-userMapper.update(user, wrapper);
-// UPDATE user SET ... WHERE ... AND tenant_id = 'tenant_001'
+### 4.2 Insert 时自动填充租户 ID
 
-// DELETE
-userMapper.delete(wrapper);
-// DELETE FROM user WHERE ... AND tenant_id = 'tenant_001'
-```
+MyBatis Plus 的多租户插件会在 INSERT 语句中自动加入 	enant_id 字段，也可以结合 MetaObjectHandler 填充：
+
+`java
+@Component
+public class TenantMetaObjectHandler implements MetaObjectHandler {
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        this.strictInsertFill(metaObject, "tenantId", Long.class, TenantContext.getTenantId());
+        this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+    }
+
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+    }
+}
+`
 
 ---
 
-## 八、忽略租户过滤的几种方式
+## 五、常见坑点与最佳实践
 
-### 方式1：ignoreTable 中配置特定表
+### 坑 1：ThreadLocal 未清理导致租户 ID 污染
 
-```java
+`java
+// ❌ 线程池复用线程，上个请求的 tenantId 污染下个请求
+// 必须在 HandlerInterceptor.afterCompletion 或 Filter.finally 中清理
+TenantContext.clear();  // 这行必须在 finally 块中执行
+`
+
+### 坑 2：ignoreTable 大小写问题
+
+`java
+// ❌ 不同数据库表名大小写处理不同
 @Override
 public boolean ignoreTable(String tableName) {
-    return "sys_dict".equals(tableName);
+    return tableName.equals("SYS_CONFIG");  // MySQL 不区分大小写，但传入可能是小写
 }
-```
 
-### 方式2：@InterceptorIgnore 注解忽略某个 Mapper 方法
-
-```java
-public interface UserMapper extends BaseMapper<User> {
-
-    // 全局统计（忽略租户过滤）
-    @InterceptorIgnore(tenantLine = "true")
-    @Select("SELECT COUNT(*) FROM user")
-    Long countAll();
-
-    // 超级管理员查所有租户数据
-    @InterceptorIgnore(tenantLine = "true")
-    List<User> selectAllTenants();
+// ✅ 统一转小写比较
+@Override
+public boolean ignoreTable(String tableName) {
+    return Set.of("sys_config", "tenant_info").contains(tableName.toLowerCase());
 }
-```
+`
 
-### 方式3：编程式忽略（适合动态场景）
+### 坑 3：复杂 SQL（子查询/Union）可能注入不完整
 
-```java
-// 在某段代码中临时忽略租户
-InterceptorIgnoreHelper.handle(IgnoreStrategy.builder().tenantLine(true).build());
-try {
-    // 此处执行的 SQL 不追加 tenant_id
-    userMapper.selectList(null);
-} finally {
-    InterceptorIgnoreHelper.clearIgnoreStrategy();
-}
-```
+JSQLParser 对复杂 SQL 的解析可能不完整，建议对关键复杂查询进行手动验证打印实际 SQL。
 
 ---
 
-## 九、多租户与分页插件共存验证
+## 六、总结与延伸
 
-```java
-@Test
-void testTenantWithPage() {
-    // 模拟租户请求
-    TenantContextHolder.setTenantId("tenant_001");
-    try {
-        Page<User> page = new Page<>(1, 10);
-        // 实际 SQL：
-        // SELECT COUNT(*) FROM user WHERE status = 1 AND tenant_id = 'tenant_001'
-        // SELECT * FROM user WHERE status = 1 AND tenant_id = 'tenant_001' LIMIT 0, 10
-        IPage<User> result = userMapper.selectPage(page,
-            new LambdaQueryWrapper<User>().eq(User::getStatus, 1));
+**核心要点**：
+- MyBatis Plus 多租户插件通过 JSQLParser 自动注入 	enant_id 条件，零业务侵入
+- TenantLineHandler 实现三个方法：当前租户 ID、租户字段名、忽略表列表
+- 租户 ID 通过 ThreadLocal 传递，**必须**在请求结束后清理，防止线程池污染
+- 超管场景用 @InterceptorIgnore 临时跳过租户过滤
 
-        Assertions.assertNotNull(result);
-    } finally {
-        TenantContextHolder.clear();
-    }
-}
-```
-
----
-
-## 十、完整配置总览
-
-```yaml
-# application.yml
-mybatis-plus:
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发时打印 SQL
-  global-config:
-    db-config:
-      logic-delete-field: deleted    # 逻辑删除字段
-      logic-delete-value: 1
-      logic-not-delete-value: 0
-```
-
----
-
-## 十一、常见问题与解决
-
-| 问题 | 原因 | 解决方案 |
-|------|------|---------|
-| tenant_id 为 null 报错 | ThreadLocal 未设置 | Filter 中设置，finally 清理 |
-| 跨线程 tenant_id 丢失 | ThreadLocal 不跨线程 | 使用 `InheritableThreadLocal` 或手动传递 |
-| 公共表数据被过滤 | 未配置 ignoreTable | 在 ignoreTable 中加入该表 |
-| 分页 count 不准 | 拦截器顺序错误 | 多租户拦截器放在分页之前 |
-| INSERT 未写入 tenant_id | 表没有 tenant_id 列 | 检查表结构，确保有该字段 |
-| 子查询未追加 tenant_id | JSqlParser 版本问题 | 升级 jsqlparser 版本 |
-
----
-
-## 十二、总结
-
-- `TenantLineInnerInterceptor` 基于 JSqlParser 解析 SQL AST，自动在 WHERE 子句注入 `tenant_id = ?`
-- `TenantLineHandler` 是唯一需要实现的接口，提供租户 ID 和忽略规则
-- **ThreadLocal** 是传递租户上下文的标准方式，必须在 finally 中清理
-- 多租户与分页插件共存时，多租户拦截器需排在前面
-- `@InterceptorIgnore(tenantLine = "true")` 可对特定方法跳过租户过滤
+**延伸阅读方向**：
+- MyBatis Plus 逻辑删除：@TableLogic + 软删除与多租户的协同处理
+- 数据权限插件：DataPermissionInterceptor，按部门/角色过滤数据，类似多租户原理
+- Schema 级别多租户：动态切换数据源，Sharding-JDBC 的 Schema 路由策略
+- MyBatis Plus 乐观锁：@Version 注解防并发更新，与多租户场景的配合
