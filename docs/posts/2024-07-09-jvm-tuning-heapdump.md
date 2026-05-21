@@ -1,233 +1,249 @@
-﻿# JVM 调优实战：heap dump 分析与 GC 日志解读
+﻿# JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析
 
-<div class="post-meta">📅 2024-07-09 &nbsp;·&nbsp; 🏷️ <span class="tag">Java</span> <span class="tag">JVM</span> <span class="tag">性能</span></div>
+<div class="post-meta">📅 2024-07-09 &nbsp;·&nbsp; 🏷️ <span class="tag">JVM</span></div>
 
-JVM 调优不是玄学，关键是**看数据说话**。本文讲解 heap dump 分析与 GC 日志解读的完整流程，帮助定位内存泄漏和 GC 停顿问题。
-
----
-
-## 一、GC 日志开启与格式
-
-### JDK 8 开启 GC 日志
-
-```bash
-java -Xms2g -Xmx2g \
-  -XX:+PrintGCDetails \
-  -XX:+PrintGCDateStamps \
-  -XX:+PrintGCTimeStamps \
-  -Xloggc:/var/log/app/gc.log \
-  -XX:+UseGCLogFileRotation \
-  -XX:NumberOfGCLogFiles=5 \
-  -XX:GCLogFileSize=20m \
-  -jar app.jar
-```
-
-### JDK 9+ 统一日志（Xlog）
-
-```bash
-java -Xms2g -Xmx2g \
-  -Xlog:gc*:file=/var/log/app/gc.log:time,uptime,level,tags:filecount=5,filesize=20m \
-  -jar app.jar
-```
+生产服务半夜频繁重启，日志只有 java.lang.OutOfMemoryError: Java heap space。没有 heap dump，没有 GC 日志，运维人员只能重启祈祷。这篇文章的目的是：**在问题发生之前配置好可观测性工具，在问题发生时能快速定位**。
 
 ---
 
-## 二、GC 日志解读
+## 一、背景：JVM 调优的目标与前提
 
-### G1 Young GC 日志示例
+JVM 调优的目标不是"参数越多越好"，而是针对具体问题找到根因：
 
-```
-2024-07-09T14:23:01.123+0800: 3.456: [GC pause (G1 Evacuation Pause) (young)
- Heap before GC:
-   Eden: 800M(800M)->0B(800M)
-   Survivors: 50M->60M
-   Old: 1200M
- [Parallel Time: 12.3 ms, GC Workers: 8]
- [Eden: 800.0M(800.0M)->0.0B(800.0M) Survivors: 50.0M->60.0M Heap: 2050.0M(4096.0M)->1310.0M(4096.0M)]
- [Times: user=0.08 sys=0.01, real=0.013 secs]
-```
+| 症状 | 可能原因 | 排查手段 |
+|------|---------|---------|
+| CPU 持续高 | GC 频繁、死循环、序列化瓶颈 | 线程 dump + GC 日志 |
+| 内存持续增长 | 内存泄漏、缓存无限增长 | Heap dump + MAT 分析 |
+| 接口延迟抖动 | GC STW 暂停 | GC 日志 + 暂停时间分析 |
+| OOM crash | 堆/元空间/直接内存耗尽 | Heap dump on OOM |
+| 慢启动 | 类加载慢、JIT 预热 | -verbose:class + JFR |
 
-关键指标解读：
-
-| 字段 | 含义 |
-|------|------|
-| `GC pause (young)` | Young GC，仅收集新生代 |
-| `real=0.013 secs` | 实际停顿 13ms（STW 时间）|
-| `user=0.08` | CPU 用户态时间（多核并行）|
-| `Eden: 800M->0B` | Eden 回收后清空 |
-| `Heap: 2050M->1310M` | 本次 GC 释放约 740MB |
-
-### 识别 Full GC
-
-```
-[Full GC (Ergonomics)  2048M->1536M(4096M), 8.234 secs]
-                                              ^^^^^^^^ 危险！8秒停顿
-```
-
-**Full GC 触发原因排查**：
-1. 老年代空间不足 → 增大 `-Xmx` 或排查内存泄漏
-2. 元空间不足 → 增大 `-XX:MaxMetaspaceSize`
-3. `System.gc()` 被调用 → 添加 `-XX:+DisableExplicitGC`
+**调优前提**：先配置好 GC 日志输出和 OOM 时自动导出 heap dump，确保出问题时有数据。
 
 ---
 
-## 三、GC 日志可视化工具
+## 二、生产环境必配的 JVM 参数
 
-推荐 **GCEasy**（在线）或 **GCViewer**（本地）：
+### 2.1 内存配置
 
-```bash
-# GCViewer 本地运行
-java -jar gcviewer.jar /var/log/app/gc.log
-```
+`ash
+# 堆大小：-Xms 和 -Xmx 设置相同，避免运行中动态扩容导致 Full GC
+-Xms4g -Xmx4g
 
-重点关注指标：
-- **Throughput**（吞吐量）：应 > 95%
-- **Max Pause**（最大停顿）：G1 目标 < 200ms
-- **Avg Pause**（平均停顿）
-- **GC Overhead**（GC 时间占比）：应 < 5%
+# 新生代大小：通常占堆的 1/3~1/4，具体看应用对象生命周期
+-Xmn1g
 
----
-
-## 四、heap dump 采集
-
-### 方式一：OOM 时自动生成
-
-```bash
-java -XX:+HeapDumpOnOutOfMemoryError \
-     -XX:HeapDumpPath=/var/log/app/heapdump.hprof \
-     -jar app.jar
-```
-
-### 方式二：手动触发（不停机）
-
-```bash
-# 找到 Java 进程 PID
-jps -l
-
-# 使用 jmap 生成（注意：会有短暂停顿）
-jmap -dump:format=b,file=/tmp/heap.hprof <PID>
-
-# JDK 9+ 推荐使用 jcmd
-jcmd <PID> GC.heap_dump /tmp/heap.hprof
-```
-
-### 方式三：通过 JMX / Actuator
-
-```bash
-# Spring Boot Actuator 端点（需开放 heapdump 端点）
-curl -O http://localhost:8080/actuator/heapdump
-```
-
----
-
-## 五、MAT（Memory Analyzer Tool）分析
-
-MAT 是 Eclipse 出品的 heap dump 分析工具，[下载地址](https://eclipse.dev/mat/)。
-
-### 打开 heap dump
-
-```
-File → Open Heap Dump → 选择 .hprof 文件
-```
-
-### 关键分析视图
-
-**1. Leak Suspects Report（内存泄漏嫌疑报告）**
-
-自动分析并给出嫌疑点，直接找到占用内存最多的对象链：
-
-```
-Problem Suspect 1:
-  One instance of "com.example.cache.UserCache" 
-  loaded by "jdk.internal.loader.ClassLoaders$AppClassLoader" 
-  occupies 1,234,567,890 (78.5%) bytes.
-  
-  Keywords: HashMap, UserCache, 500,000 entries
-```
-
-**2. Dominator Tree（支配树）**
-
-列出保留堆最大的对象，按 Retained Heap 排序：
-
-```
-Class Name                          Shallow Heap  Retained Heap
-com.example.cache.UserCache              48 B     1,234 MB  ← 重点检查
-  └─ java.util.HashMap                   48 B     1,234 MB
-       └─ HashMap$Entry[1048576]        ...
-```
-
-**3. OQL（对象查询语言）**
-
-```sql
--- 查找所有 UserSession 对象
-SELECT * FROM com.example.session.UserSession
-
--- 查找 size > 1000 的 ArrayList
-SELECT * FROM java.util.ArrayList a WHERE a.size > 1000
-```
-
----
-
-## 六、常见内存问题诊断
-
-### 问题1：HashMap 无限增长（缓存未设置上限）
-
-```java
-// ❌ 静态 Map 作为缓存，无淘汰机制
-private static final Map<String, Data> CACHE = new HashMap<>();
-
-// ✅ 改用 Caffeine 或 Guava Cache，设置最大容量和过期时间
-LoadingCache<String, Data> cache = Caffeine.newBuilder()
-    .maximumSize(10_000)
-    .expireAfterWrite(Duration.ofMinutes(10))
-    .build(key -> loadFromDB(key));
-```
-
-### 问题2：ThreadLocal 未清理（线程池场景）
-
-```java
-// ❌ 线程池中 ThreadLocal 使用后未清理，导致旧数据残留 + 内存泄漏
-ThreadLocal<UserContext> context = new ThreadLocal<>();
-
-// ✅ 使用 try-finally 确保清理
-try {
-    context.set(new UserContext(userId));
-    doProcess();
-} finally {
-    context.remove(); // 必须清理！
-}
-```
-
----
-
-## 七、JVM 调优常用参数速查
-
-```bash
-# 堆内存
--Xms4g -Xmx4g          # 初始/最大堆（建议相同，避免扩缩停顿）
--Xmn1g                  # 新生代大小（G1 不建议手动设置）
-
-# 元空间
+# 元空间：必须设上限，防止 CGLIB/动态代理无限加载类
 -XX:MetaspaceSize=256m
 -XX:MaxMetaspaceSize=512m
 
-# G1 调优
--XX:+UseG1GC
--XX:MaxGCPauseMillis=100
--XX:G1HeapRegionSize=16m
+# 直接内存（NIO/Netty 使用）：默认等于 -Xmx，建议显式指定
+-XX:MaxDirectMemorySize=2g
 
-# 诊断
--XX:+HeapDumpOnOutOfMemoryError
--XX:HeapDumpPath=/tmp/
+# 栈大小：默认 512k~1m，递归深的应用适当增大
+-Xss512k
+`
+
+### 2.2 GC 日志配置（JDK 9+ 统一日志框架）
+
+`ash
+# JDK 9+ 统一日志框架（推荐）
+-Xlog:gc*:file=/logs/gc.log:time,level,tags:filecount=10,filesize=50m
+
+# JDK 8 的 GC 日志配置
 -XX:+PrintGCDetails
--Xlog:gc*:file=/tmp/gc.log:time
-```
+-XX:+PrintGCDateStamps
+-XX:+PrintGCTimeStamps
+-Xloggc:/logs/gc.log
+-XX:+UseGCLogFileRotation
+-XX:NumberOfGCLogFiles=10
+-XX:GCLogFileSize=50m
+`
+
+### 2.3 OOM 时自动导出 Heap Dump
+
+`ash
+# 发生 OOM 时自动导出 heap dump（不需要手动操作，自动触发）
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/logs/heapdump.hprof
+
+# 打印 OOM 时的完整堆栈
+-XX:+PrintClassHistogramBeforeFullGC
+`
+
+### 2.4 完整生产配置模板
+
+`ash
+java \
+  -server \
+  -Xms4g -Xmx4g \
+  -Xmn1g \
+  -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=512m \
+  -XX:MaxDirectMemorySize=1g \
+  -XX:+UseG1GC \
+  -XX:MaxGCPauseMillis=200 \
+  -XX:G1HeapRegionSize=16m \
+  -XX:InitiatingHeapOccupancyPercent=45 \
+  -Xlog:gc*:file=/logs/gc.log:time,level,tags:filecount=10,filesize=50m \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=/logs/heapdump.hprof \
+  -jar app.jar
+`
 
 ---
 
-## 总结
+## 三、GC 日志分析
 
-1. **GC 日志**是调优的第一手数据，重点看停顿时间和 Full GC 频率
-2. **heap dump** 结合 MAT 的 Dominator Tree 能快速定位内存泄漏元凶
-3. 常见泄漏来源：无上限缓存、ThreadLocal 未清理、监听器未注销、连接未关闭
-4. 调优公式：先扩大内存（快速止血）→ 再分析根因（根本解决）
+### 3.1 读懂 GC 日志
+
+`
+# G1 GC 日志示例（JDK 11）
+[2024-07-09T10:23:45.123+0800][GC pause (G1 Young Generation) (young), 0.0523 secs]
+   [Parallel Time: 45.6 ms, GC Workers: 8]
+   [Eden: 512.0M(512.0M)->0.0B(512.0M) Survivors: 64.0M->64.0M Heap: 1536.0M(4096.0M)->1064.0M(4096.0M)]
+
+关键字段：
+- "young"：Young GC（仅清理新生代）
+- "0.0523 secs"：本次 GC 暂停时间 52.3ms
+- Eden: 512M->0B：Eden 区清空
+- Heap: 1536M->1064M：堆总使用量从 1.5G 降到 1G
+`
+
+`
+# Full GC 警告信号
+[GC pause (G1 Evacuation Pause) (mixed), 1.2345 secs]  ← mixed GC 超过 1 秒，需关注
+[Full GC (Allocation Failure), 5.6789 secs]             ← Full GC，问题严重
+`
+
+### 3.2 判断 GC 健康度
+
+| 指标 | 健康 | 需关注 | 告警 |
+|------|------|-------|------|
+| Young GC 频率 | < 1次/分钟 | 1~5次/分钟 | > 5次/分钟 |
+| Young GC 耗时 | < 50ms | 50~200ms | > 200ms |
+| Full GC 频率 | 0 | 1次/天 | > 1次/天 |
+| GC 占用时间比 | < 5% | 5~15% | > 15% |
+| Old Gen 增长趋势 | 稳定 | 缓慢增长 | 持续增长（内存泄漏） |
+
+### 3.3 推荐工具
+
+- **GCEasy**（[gceasy.io](https://gceasy.io)）：上传 GC 日志，自动生成可视化报告
+- **GCViewer**：本地工具，可查看 GC 暂停时间分布
+- **JDK Mission Control（JMC）**：配合 JFR（Java Flight Recorder）做深度分析
+
+---
+
+## 四、Heap Dump 分析实战
+
+### 4.1 获取 Heap Dump
+
+`ash
+# 方式一：OOM 时自动触发（推荐，已在 JVM 参数中配置）
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/heapdump.hprof
+
+# 方式二：手动触发（不重启，适合内存泄漏排查）
+jmap -dump:format=b,file=/tmp/heapdump.hprof <PID>
+
+# 方式三：jcmd（JDK 9+，更安全，不触发 Full GC）
+jcmd <PID> GC.heap_dump /tmp/heapdump.hprof
+
+# 注意：4GB 堆的 dump 文件约 2~4GB，确保磁盘空间充足
+`
+
+### 4.2 用 MAT（Eclipse Memory Analyzer Tool）分析
+
+1. 下载 MAT：[eclipse.org/mat](https://eclipse.org/mat)
+2. 打开 heapdump.hprof
+3. 点击 **Leak Suspects Report** 自动分析潜在泄漏
+
+**核心视图**：
+
+`
+Leak Suspects Report：
+Problem Suspect 1:
+  One instance of "com.example.CacheManager" loaded by "app" occupies 2.1 GB (52.3%)
+  ↑ 这是最可能的泄漏点，CacheManager 持有了 52% 的堆
+
+Dominator Tree（支配树）：
+  com.example.CacheManager
+    └─ HashMap[] (2.1GB)
+         └─ 大量 UserSession 对象（应该已过期但未被清除）
+
+→ 结论：CacheManager 的 HashMap 没有设置过期策略，用户 Session 对象无限堆积
+`
+
+### 4.3 典型内存泄漏场景
+
+`java
+// 场景 1：Static 集合持有对象引用
+public class CacheManager {
+    // ❌ 静态 Map 持有引用，GC 无法回收
+    private static final Map<String, Object> cache = new HashMap<>();
+
+    public void add(String key, Object value) {
+        cache.put(key, value); // 只增不减，内存持续增长
+    }
+}
+
+// 场景 2：ThreadLocal 使用后未 remove（线程池场景）
+void processRequest(String userId) {
+    USER_CONTEXT.set(userId);
+    try {
+        doWork();
+    } finally {
+        USER_CONTEXT.remove(); // ✅ 必须！线程池线程复用，不 remove 会泄漏
+    }
+}
+
+// 场景 3：监听器/回调注册后未注销
+eventBus.register(this);  // ✅ 使用后必须 eventBus.unregister(this)
+`
+
+---
+
+## 五、高频问题排查 SOP
+
+### 内存持续增长
+
+`ash
+# 步骤1：监控堆使用趋势（5分钟一次）
+jstat -gcutil <PID> 300000
+
+# 步骤2：确认是堆泄漏还是元空间或直接内存
+jcmd <PID> VM.native_memory summary  # 查看各内存区域使用量
+
+# 步骤3：Old Gen 持续增长 → 导出 heap dump 用 MAT 分析
+jcmd <PID> GC.heap_dump /tmp/heap.hprof
+
+# 步骤4：查看 MAT Leak Suspects 报告，找到持有大量内存的对象
+`
+
+### GC 频繁/暂停时间长
+
+`ash
+# 查看 GC 统计
+jstat -gc <PID> 1000 10   # 每秒打印一次，共10次
+
+# 输出示例：
+# S0C  S1C  S0U  S1U  EC     EU     OC      OU    MC    MU   YGC  YGCT  FGC  FGCT   GCT
+# 512  512  0    512  4096   3500   8192    7500  256   240   150  8.5   2    12.3  20.8
+#                                           ↑OldGen接近满          ↑Full GC 占比高
+
+# 分析：Old Gen 91.5% 使用率，考虑增大堆或排查对象晋升异常
+`
+
+---
+
+## 六、总结与延伸
+
+**核心要点**：
+- 生产环境必须预先配置 GC 日志和 OOM 自动 dump，否则出问题无从排查
+- -Xms 和 -Xmx 设置相同值，避免堆动态扩容触发 Full GC
+- Heap dump 分析首选 MAT 的 Leak Suspects 报告，找到最大对象持有者
+- 内存泄漏三大常见源头：Static 集合、ThreadLocal 未 remove、监听器未注销
+
+**延伸阅读方向**：
+- JVM GC 收集器原理：本站 [JVM 垃圾回收器详解](posts/2024-05-27-jvm-gc-collectors.md)
+- Java Flight Recorder（JFR）：JDK 11+ 内置的低开销持续性能分析工具
+- Arthas：阿里开源的 Java 在线诊断工具，无需重启、支持热更新
+- JVM 内存结构详解：方法区、虚拟机栈、本地方法栈、程序计数器
