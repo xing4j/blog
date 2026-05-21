@@ -1,6 +1,7 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md)
   - [qiankun 微前端框架：原理详解与实战指南](posts/2026-05-17-qiankun-micro-frontend.md)
   - [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md)
   - [Linux 生产环境日志查询命令技巧](posts/2026-05-16-linux-log-query-tips.md)
@@ -12,7 +13,7 @@
 
 
 - **分类**
-  - [Java 核心 (11)](posts/#java-核心)
+  - [Java 核心 (12)](posts/#java-核心)
   - [Spring 生态 (10)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (5)](posts/#中间件)

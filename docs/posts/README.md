@@ -1,9 +1,10 @@
 # 📚 文章归档
 
-> 共 72 篇文章
+> 共 73 篇文章
 
 ## Java 核心
 
+- [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md) — `2026-05-21`
 - [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md) — `2026-05-16`
 - [Java 泛型擦除与通配符详解](posts/2025-05-08-java-generics-erasure.md) — `2025-05-08`
 - [Java 深拷贝 vs 浅拷贝详解](posts/2025-03-22-java-deep-shallow-copy.md) — `2025-03-22`

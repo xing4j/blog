@@ -6,6 +6,7 @@
 
 | 日期 | 文章 | 分类 |
 |------|------|------|
+| 2026-05-21 | [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md) | Java 核心 |
 | 2026-05-17 | [qiankun 微前端框架：原理详解与实战指南](posts/2026-05-17-qiankun-micro-frontend.md) | Vue 前端 |
 | 2026-05-16 | [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md) | Java 核心 |
 | 2026-05-16 | [Linux 生产环境日志查询命令技巧](posts/2026-05-16-linux-log-query-tips.md) | Linux 运维 |
@@ -17,7 +18,7 @@
 | 2026-04-11 | [RBAC 权限设计与 Spring Security 实现](posts/2026-04-11-rbac-permission.md) | 系统设计 |
 ## 🏷️ 分类
 
-- [Java 核心 (11 篇)](posts/#java-核心)
+- [Java 核心 (12 篇)](posts/#java-核心)
 - [Spring 生态 (10 篇)](posts/#spring-生态)
 - [数据库 (10 篇)](posts/#数据库)
 - [中间件 (5 篇)](posts/#中间件)
