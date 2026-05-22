@@ -1,319 +1,190 @@
-﻿# MySQL 分库分表方案选型与实践
+﻿# MySQL 分库分表：什么时候做，怎么做，坑在哪
 
-<div class="post-meta">📅 2025-04-13 &nbsp;·&nbsp; 🏷️ <span class="tag">MySQL</span> <span class="tag">分布式</span></div>
+<div class="post-meta">📅 2025-04-13 &nbsp;·&nbsp; 🏷️ <span class="tag">数据库</span></div>
 
-## 一、何时需要分库分表？
+单表数据量过亿，查询越来越慢，DBA 说要"分库分表"。但这不是一个轻易的决策——分库分表带来的复杂性，往往远超预期：跨库事务、分页查询、全局 ID、数据迁移……每一个都是工程难题。本文帮你梳理清楚：什么时候分、怎么分、踩什么坑。
 
-| 指标 | 警戒线 | 说明 |
-|------|-------|------|
-| 单表行数 | > 1000 万 | 索引树层高增加，查询变慢 |
-| 单表数据量 | > 10 GB | 备份/恢复耗时长 |
-| 单库 QPS | > 5000 | 单实例 CPU/IO 成为瓶颈 |
-| 单库连接数 | > 1000 | 连接池竞争激烈 |
+---
 
-**先考虑的优化手段（优先于分库分表）：**
-1. 索引优化
-2. 读写分离
-3. 缓存（Redis）
-4. 归档历史数据
-5. 分区表（PARTITION）
+## 一、背景：什么时候才真的需要分库分表
 
-## 二、垂直拆分 vs 水平拆分
+**先做这些，再考虑分库分表**（按顺序）：
 
-### 2.1 垂直拆分
+`
+1. 索引优化（EXPLAIN 分析，补索引）← 大多数场景够用
+2. SQL 优化（N+1、深分页、SELECT *）
+3. 读写分离（主库写，从库读）← 读多写少场景
+4. 冷热数据分离（历史数据归档）← 减少活跃表数据量
+5. 垂直分表（大字段拆分）← 减小行宽，提升缓存效率
+6. ↓ 以上都不够时，才考虑水平分库分表
+`
 
-**垂直分库**：按业务模块将不同表拆分到不同数据库。
+**分库分表的触发条件**（供参考，不是硬性标准）：
+- 单表数据量 > 5000 万行，且 SQL 优化已穷尽
+- 写 QPS > 单库瓶颈（通常 MySQL 写 QPS 上限约 1 万~3 万 TPS）
+- 数据增长速度快（如每月增长 1 亿行）
 
-```
-单体数据库:                    垂直分库后:
-┌─────────────────┐           ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ users           │           │  用户库   │  │  订单库   │  │  商品库   │
-│ orders          │   ──→     │  users   │  │  orders  │  │ products │
-│ products        │           │  address │  │  items   │  │ category │
-│ order_items     │           └──────────┘  └──────────┘  └──────────┘
-│ addresses       │
-└─────────────────┘
-```
+---
 
-**垂直分表**：将宽表按列拆分（常用列 + 大字段/不常用列）。
+## 二、垂直拆分：按业务拆库
 
-```sql
--- 原表：user (id, name, email, avatar, bio, settings, created_at)
--- 拆分为：
--- user_base  (id, name, email, created_at)   -- 频繁查询
--- user_extra (id, avatar, bio, settings)     -- 偶尔访问
-```
+将不同业务的表拆分到不同的数据库（微服务拆分的自然结果）：
 
-| 特性 | 垂直分库 | 垂直分表 |
-|------|---------|---------|
-| 拆分维度 | 按业务模块（表） | 按列（冷热数据） |
-| 解决问题 | 跨业务耦合 | 单表列过多、大字段 |
-| 跨库 JOIN | 需要 | 不需要 |
+`
+拆分前（单库）：            拆分后（按业务）：
+┌─────────────────┐        ┌──────────┐  ┌──────────┐  ┌──────────┐
+│ users           │        │  用户库   │  │  订单库   │  │  商品库   │
+│ orders          │  →     │  users   │  │  orders  │  │  products│
+│ products        │        └──────────┘  └──────────┘  └──────────┘
+│ inventory       │                                    ┌──────────┐
+│ payments        │                                    │  支付库   │
+└─────────────────┘                                    │  payments│
+                                                       └──────────┘
+`
 
-### 2.2 水平拆分
+**优点**：业务隔离，单库压力降低
+**代价**：跨库 JOIN 消失，需要业务层聚合
 
-**水平分表**：同一张表数据按规则分散到多张结构相同的表。
+---
 
-```
-orders 表数据量过大：
-orders_0  → user_id % 4 = 0 的订单
-orders_1  → user_id % 4 = 1 的订单
-orders_2  → user_id % 4 = 2 的订单
-orders_3  → user_id % 4 = 3 的订单
-```
+## 三、水平分表：按数据量拆分
 
-## 三、分片键选择原则
+### 3.1 分片键选择（最关键的决策）
 
-分片键（Sharding Key）是决定数据去哪个分片的关键字段。
+`
+分片键选择原则：
+1. 高区分度：尽量均匀分布，避免数据倾斜（热点分片）
+2. 查询友好：尽量让大多数查询带上分片键，避免跨分片扫描
+3. 不可变：分片键一旦确定，不要修改（修改=数据迁移）
+`
 
-### 3.1 选择原则
+常见分片键：
+- 用户相关业务：user_id（用户查自己的数据，不跨片）
+- 订单：order_id 或 user_id（根据查询场景决定）
+- 时间序列：create_time（归档友好，但时间范围查询可能跨片）
 
-| 原则 | 说明 |
-|------|------|
-| 区分度高 | 数据均匀分布，避免热点 |
-| 查询覆盖 | 大多数查询条件都包含分片键 |
-| 值稳定 | 一旦确定后不应变更 |
-| 不可为空 | 分片键不能是 NULL |
+### 3.2 分片算法
 
-### 3.2 常见分片策略
+`java
+// 算法 1：哈希取模（分布均匀，但扩容难）
+int tableIndex = userId % 16;  // 16张表
+// 扩容 16→32 时，几乎所有数据都要迁移
 
-```java
-// 1. 取模分片（范围查询差）
-int shardIndex = userId % shardCount;
+// 算法 2：一致性哈希（扩容影响范围小）
+// 将哈希空间构成环，新增节点只影响相邻节点的数据
 
-// 2. 范围分片（容易热点）
-// [1, 1000000)  → shard_0
-// [1000000, 2000000) → shard_1
+// 算法 3：范围分片（归档友好，但容易热点）
+// user_id 1~1000000 → shard_0
+// user_id 1000001~2000000 → shard_1
 
-// 3. 哈希分片（均匀，范围查询差）
-int shardIndex = Math.abs(userId.hashCode()) % shardCount;
+// 算法 4：路由表（最灵活，但多一次查询）
+// 维护 user_id → shard_id 的映射表（适合非均匀分布场景）
+`
 
-// 4. 一致性哈希（扩容友好）
-// 虚拟节点 + 哈希环
-```
+### 3.3 ShardingSphere 实战配置
 
-## 四、ShardingSphere 实战配置
-
-### 4.1 Maven 依赖
-
-```xml
-<dependency>
-    <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>
-    <version>5.3.2</version>
-</dependency>
-```
-
-### 4.2 application.yml 配置
-
-```yaml
+`yaml
+# application.yml（ShardingSphere-JDBC）
 spring:
   shardingsphere:
     datasource:
       names: ds0, ds1
       ds0:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        jdbc-url: jdbc:mysql://localhost:3306/order_db_0
-        username: root
-        password: secret
+        url: jdbc:mysql://db0:3306/orders
       ds1:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        jdbc-url: jdbc:mysql://localhost:3306/order_db_1
-        username: root
-        password: secret
+        url: jdbc:mysql://db1:3306/orders
     rules:
       sharding:
         tables:
           orders:
-            actual-data-nodes: ds${0..1}.orders_${0..3}
-            # 分库策略：按 user_id 取模
+            actual-data-nodes: ds.orders_  # 2库 × 8表 = 16分片
             database-strategy:
               standard:
                 sharding-column: user_id
                 sharding-algorithm-name: db-inline
-            # 分表策略：按 order_id 取模
             table-strategy:
               standard:
                 sharding-column: order_id
                 sharding-algorithm-name: table-inline
-            # 分布式主键
-            key-generate-strategy:
-              column: order_id
-              key-generator-name: snowflake
         sharding-algorithms:
           db-inline:
             type: INLINE
             props:
-              algorithm-expression: ds${user_id % 2}
+              algorithm-expression: ds
           table-inline:
             type: INLINE
             props:
-              algorithm-expression: orders_${order_id % 4}
-        key-generators:
-          snowflake:
-            type: SNOWFLAKE
-    props:
-      sql-show: true
-```
+              algorithm-expression: orders_
+`
 
-### 4.3 代码示例
+---
 
-```java
-@Service
-public class OrderService {
+## 四、分库分表的五大难题
 
-    @Autowired
-    private OrderMapper orderMapper;
+### 难题 1：跨库 JOIN
 
-    public void createOrder(Order order) {
-        // ShardingSphere 自动路由到正确的库和表
-        // 无需修改业务代码
-        orderMapper.insert(order);
-    }
+`sql
+-- ❌ 跨库 JOIN 无法直接执行
+SELECT u.name, o.amount
+FROM db0.users u
+JOIN db1.orders o ON u.id = o.user_id
+WHERE o.status = 'paid';
 
-    public Order getOrder(Long orderId, Long userId) {
-        // 包含分片键，精准路由
-        return orderMapper.findByOrderIdAndUserId(orderId, userId);
-    }
-}
-```
+-- ✅ 解法：冗余数据
+-- 在 orders 表冗余 user_name 字段，避免跨库 JOIN
+`
 
-## 五、跨库分页与排序问题
+### 难题 2：分布式 ID
 
-### 5.1 问题描述
+分库分表后，数据库自增 ID 不再唯一（各库各自自增）。需要全局唯一 ID 方案：
+- **雪花算法（Snowflake）**：时间戳(41) + 机器ID(10) + 序号(12) → 64位整数
+- **号段模式**：从 DB 批量申请号段（如每次申请 1000 个），本地分配
 
-```sql
--- 分 4 张表后，这条 SQL 无法直接执行
+### 难题 3：分页与排序
+
+`sql
+-- ❌ 跨分片的分页无法简单下推
 SELECT * FROM orders ORDER BY create_time DESC LIMIT 10 OFFSET 100;
--- ShardingSphere 实际执行：在每个分表执行 LIMIT 110，然后归并
--- 数据量越大，性能越差
-```
+-- 每个分片都要查 LIMIT 110，在内存中合并后再取 10 条，性能差
 
-### 5.2 解决方案
+-- ✅ 方案 A：禁止大 OFFSET 分页，改用游标分页
+-- ✅ 方案 B：ElasticSearch 存储全量索引，DB 存数据，ES 做排序分页
+`
 
-**方案一：禁止深度分页 + 游标分页**
+### 难题 4：跨分片事务
 
-```java
-// 前端传入上次最大的 create_time 和 order_id
-public List<Order> getOrders(Long userId, LocalDateTime lastTime, Long lastId, int size) {
-    return orderMapper.selectByUserIdWithCursor(userId, lastTime, lastId, size);
-}
-```
+`java
+// ❌ 跨分片的事务无法用本地事务保证
+// ✅ 方案 A：Seata AT 模式（分布式事务框架）
+// ✅ 方案 B：最终一致性（MQ + 本地事务消息）
+// ✅ 方案 C：业务上避免跨片写（通过设计让数据在同一分片）
+`
 
-```xml
-<select id="selectByUserIdWithCursor" resultType="Order">
-    SELECT * FROM orders
-    WHERE user_id = #{userId}
-      AND (create_time, order_id) &lt; (#{lastTime}, #{lastId})
-    ORDER BY create_time DESC, order_id DESC
-    LIMIT #{size}
-</select>
-```
+### 难题 5：数据迁移
 
-**方案二：ES + MySQL 双写**
+分库分表通常在系统已有大量存量数据时进行，迁移方案：
 
-```
-写入：同时写 MySQL 分库分表 + ElasticSearch
-查询分页：ES 负责分页、排序、全文搜索
-数据获取：ES 返回 id 列表，MySQL 按 id 批量查询完整数据
-```
+`
+双写方案（零停机迁移）：
+1. 新库就绪，开启双写（同时写旧库和新库）
+2. 将旧库存量数据迁移到新库
+3. 核对数据一致性
+4. 切流量到新库（读切换）
+5. 停止旧库写入，只保留新库
+`
 
-| 方案 | 适用场景 | 缺点 |
-|------|---------|------|
-| 游标分页 | 无需跳页的瀑布流 | 不支持跳页 |
-| ES 分页 | 复杂查询、全文搜索 | 维护双写一致性 |
-| 内存归并 | 数据量小 | 性能差 |
+---
 
-## 六、跨库 JOIN 方案
+## 五、总结与延伸
 
-```sql
--- ❌ 跨库 JOIN 不可用
-SELECT u.name, o.total
-FROM user_db.users u
-JOIN order_db.orders o ON u.id = o.user_id;
-```
+**核心要点**：
+- 分库分表是最后手段，先穷尽索引优化、读写分离、冷热分离
+- 分片键选择是核心决策，影响查询模式、数据分布和扩容难度
+- 分库分表带来的复杂性：跨库 JOIN 消失、分布式 ID、跨片分页、分布式事务、数据迁移
+- 生产推荐 **ShardingSphere-JDBC**（客户端分片）或 **Mycat**（代理模式）
 
-### 解决方案
-
-**方案一：字段冗余**
-
-```sql
--- 在 orders 表冗余 user_name 字段，避免 JOIN
-CREATE TABLE orders (
-    order_id   BIGINT PRIMARY KEY,
-    user_id    BIGINT,
-    user_name  VARCHAR(50),  -- 冗余字段
-    total      DECIMAL(10,2),
-    ...
-);
-```
-
-**方案二：全局表（广播表）**
-
-```yaml
-# ShardingSphere 广播表配置（在所有分库都保存完整数据）
-broadcast-tables:
-  - t_dict_item    # 数据字典，数据量小且频繁 JOIN
-  - t_province     # 省市区表
-```
-
-**方案三：应用层 JOIN**
-
-```java
-// 先查 A 库数据，拿到 id 列表，再查 B 库
-List<Order> orders = orderMapper.findByUserId(userId);
-List<Long> productIds = orders.stream()
-    .map(Order::getProductId).collect(Collectors.toList());
-List<Product> products = productMapper.findByIds(productIds);
-// 应用层拼装
-```
-
-## 七、扩容迁移方案
-
-### 7.1 不停机迁移流程（双写方案）
-
-```
-阶段1：双写新旧两套分表
-  写操作 → 同时写旧表（4张）和新表（8张）
-  读操作 → 读旧表
-
-阶段2：数据迁移
-  将旧表存量数据迁移到新表
-  迁移工具：Canal + 自定义消费者
-
-阶段3：数据校验
-  对比新旧表数据一致性
-  diff 工具检查
-
-阶段4：读切换
-  读操作切换到新表
-  观察 1~2 天
-
-阶段5：写切换
-  停止双写，只写新表
-
-阶段6：旧表下线
-  备份后删除旧表
-```
-
-### 7.2 扩容规划建议
-
-| 初始分片数 | 建议 |
-|-----------|------|
-| 分片数用 2^n | 便于后续翻倍扩容 |
-| 预留 2 倍空间 | 初期 4 片，后续扩到 8、16 |
-| 优先垂直扩容 | 升级机器配置比分库分表简单 |
-
-## 八、分库分表常见问题
-
-| 问题 | 解决方案 |
-|------|---------|
-| 分布式主键 | Snowflake / Leaf / 号段模式 |
-| 全局唯一序列 | 独立序列服务 |
-| 跨库事务 | Seata AT/TCC 模式 |
-| 数据倾斜（热点） | 加随机后缀打散 |
-| 扩容迁移 | 双写 + 数据迁移 + 切流 |
-| 跨库分页排序 | 游标分页 / ES |
-| 跨库聚合统计 | 大数据（Flink/Spark）离线计算 |
+**延伸阅读方向**：
+- 雪花算法原理：时间戳 + 机器 ID + 序号的 64 位 ID 生成方案
+- Seata 分布式事务：AT 模式无侵入处理跨库事务
+- TiDB：NewSQL 数据库，自动分片，兼容 MySQL 协议，是分库分表的替代方案
+- binlog-based 数据迁移：Canal + MQ 实现存量数据迁移与增量同步

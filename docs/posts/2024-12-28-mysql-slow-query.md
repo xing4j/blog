@@ -1,325 +1,211 @@
-﻿# MySQL 慢查询优化实战案例
+﻿# MySQL 慢查询优化：从发现到解决的完整 SOP
 
-<div class="post-meta">📅 2024-12-28 &nbsp;·&nbsp; 🏷️ <span class="tag">MySQL</span> <span class="tag">性能</span></div>
+<div class="post-meta">📅 2024-12-28 &nbsp;·&nbsp; 🏷️ <span class="tag">数据库</span></div>
 
-## 一、慢查询日志配置
+接到告警：接口 P99 超过 3 秒。排查步骤是什么？慢查询日志、EXPLAIN、索引分析、SQL 改写——这套 SOP 在实际生产中反复验证有效。本文将整个流程串联起来，附典型案例和优化前后的对比数据。
 
-### 1.1 开启慢查询日志
+---
 
-```sql
--- 查看当前状态
-SHOW VARIABLES LIKE 'slow_query%';
+## 一、背景：慢查询的常见根因
+
+`
+慢查询根因分类：
+┌─────────────────────────────────────────┐
+│ 索引问题（70%）                          │
+│  - 无索引、索引选择性差、索引失效         │
+├─────────────────────────────────────────┤
+│ SQL 设计问题（20%）                      │
+│  - N+1 查询、大 OFFSET 分页、SELECT *    │
+├─────────────────────────────────────────┤
+│ 数据量问题（10%）                        │
+│  - 单表数据量超千万、冷热数据未分离       │
+└─────────────────────────────────────────┘
+`
+
+---
+
+## 二、Step 1：开启慢查询日志
+
+`sql
+-- 查看当前配置
+SHOW VARIABLES LIKE 'slow_query_log%';
 SHOW VARIABLES LIKE 'long_query_time';
 
--- 动态开启（重启后失效）
-SET GLOBAL slow_query_log = 'ON';
-SET GLOBAL long_query_time = 1;          -- 超过 1 秒记录
+-- 开启慢查询日志（生产建议持久化到配置文件）
+SET GLOBAL slow_query_log = ON;
+SET GLOBAL long_query_time = 1;           -- 超过 1s 记录（生产可设 0.5s）
 SET GLOBAL slow_query_log_file = '/var/log/mysql/slow.log';
-SET GLOBAL log_queries_not_using_indexes = 'ON';  -- 记录未走索引的查询
+SET GLOBAL log_queries_not_using_indexes = ON;  -- 未使用索引的查询也记录
+`
 
--- 永久配置（my.cnf）
-[mysqld]
-slow_query_log = 1
-slow_query_log_file = /var/log/mysql/slow.log
-long_query_time = 1
-log_queries_not_using_indexes = 1
-```
+慢查询日志格式：
 
-### 1.2 慢查询日志格式
+`
+# Time: 2024-12-28T10:15:30.000000Z
+# User@Host: app[app] @ localhost [127.0.0.1]
+# Query_time: 3.512340  Lock_time: 0.000100  Rows_sent: 100  Rows_examined: 980000
+SET timestamp=1703758530;
+SELECT * FROM orders WHERE status = 'paid' ORDER BY create_time DESC LIMIT 100;
+`
 
-```
-# Time: 2024-05-16T10:23:45.123456Z
-# User@Host: app[app] @ localhost []  Id:  1234
-# Query_time: 3.456789  Lock_time: 0.000123 Rows_sent: 100  Rows_examined: 500000
-SET timestamp=1715854425;
-SELECT * FROM orders WHERE status = 1 ORDER BY create_time DESC LIMIT 100;
-```
+重点字段：Query_time（执行时间）、Rows_examined（扫描行数，越大越慢）、Rows_sent（返回行数）。
 
-| 字段 | 说明 |
-|------|------|
-| Query_time | 查询总耗时（秒） |
-| Lock_time | 等待锁时间 |
-| Rows_sent | 实际返回行数 |
-| Rows_examined | 扫描行数（越大越慢） |
+---
 
-## 二、pt-query-digest 分析工具
+## 三、Step 2：分析慢查询日志
 
-### 2.1 安装与使用
+手动分析日志效率低，使用 pt-query-digest 聚合分析：
 
-```bash
+`ash
 # 安装 Percona Toolkit
-yum install percona-toolkit
+# 分析慢查询日志，输出 Top 10 高耗时 SQL
+pt-query-digest /var/log/mysql/slow.log --limit 10
 
-# 分析慢查询日志
-pt-query-digest /var/log/mysql/slow.log
+# 输出示例：
+# Rank Query ID      Response time    Calls   R/Call   Item
+# ==== ============= ================ ======= ======== ====
+#    1 0xABC...      45.3212  38.5%    1234   0.0367   SELECT orders
+#    2 0xDEF...      32.1840  27.4%     567   0.0567   SELECT users
+`
 
-# 输出到文件
-pt-query-digest /var/log/mysql/slow.log > slow_report.txt
+或直接查 information_schema.PROCESSLIST 找当前运行的慢查询：
 
-# 只分析最近 1 小时
-pt-query-digest --since 3600 /var/log/mysql/slow.log
+`sql
+-- 查找执行时间超过 2 秒的查询
+SELECT id, user, host, db, command, time, state, info
+FROM information_schema.PROCESSLIST
+WHERE time > 2 AND command != 'Sleep'
+ORDER BY time DESC;
+`
 
-# 过滤特定数据库
-pt-query-digest --filter '$event->{db} eq "your_db"' /var/log/mysql/slow.log
-```
+---
 
-### 2.2 报告解读
+## 四、Step 3：EXPLAIN 分析执行计划
 
-```
-# Profile
-# Rank Query ID           Response time  Calls R/Call  V/M   Item
-# ==== ================== =============  ===== =======  ===== =====
-#    1 0xABCD1234...       45.2345 32.1%   1200 0.0377  0.01  SELECT orders
-#    2 0xEFGH5678...       33.1234 23.5%    800 0.0414  0.02  SELECT users
+`sql
+EXPLAIN SELECT * FROM orders
+WHERE user_id = 1234 AND status = 'paid'
+ORDER BY create_time DESC
+LIMIT 10;
+`
 
-关键指标：
-- Response time：总响应时间及占比
-- Calls：调用次数
-- R/Call：平均响应时间
-- 优化优先级 = Response time 占比最大的查询
-```
+重点关注：
+- 	ype：是否 ALL（全表扫描）
+- key：使用了哪个索引，NULL 表示没有
+- ows：预估扫描行数
+- Extra：是否有 Using filesort、Using temporary
 
-## 三、案例一：N+1 查询问题优化
+---
 
-### 3.1 问题场景
+## 五、典型优化案例
 
-```java
-// ❌ N+1 问题：查1次订单列表 + N次查用户
-List<Order> orders = orderMapper.findAll();  // 1次查询
+### 案例 1：大 OFFSET 深分页
+
+`sql
+-- ❌ 深分页：OFFSET 100000，需要扫描并丢弃前 10 万行
+SELECT * FROM orders ORDER BY id LIMIT 10 OFFSET 100000;
+-- Rows_examined: 100010，耗时 2.3s
+
+-- ✅ 游标分页（记住上次查询的最大 ID）
+SELECT * FROM orders WHERE id > #{lastId} ORDER BY id LIMIT 10;
+-- Rows_examined: 10，耗时 0.001s
+`
+
+### 案例 2：N+1 查询
+
+`java
+// ❌ 先查 N 个订单，再逐一查用户，共 N+1 次 SQL
+List<Order> orders = orderDao.findAll();
 for (Order order : orders) {
-    User user = userMapper.findById(order.getUserId());  // N次查询
+    User user = userDao.findById(order.getUserId());  // N 次查询
     order.setUser(user);
 }
-```
 
-### 3.2 慢查询日志表现
-
-```
--- 循环查询，每次约 2ms，100条订单 = 200ms+
-SELECT * FROM orders;
-SELECT * FROM users WHERE id = 1;
-SELECT * FROM users WHERE id = 2;
-... (100次)
-```
-
-### 3.3 优化方案
-
-**方案一：JOIN 关联查询**
-
-```sql
--- ✅ 一次查询获取所有数据
-SELECT o.*, u.name, u.email
-FROM orders o
-LEFT JOIN users u ON o.user_id = u.id
-WHERE o.status = 1
-LIMIT 100;
-```
-
-**方案二：IN 批量查询（适合数据量大时）**
-
-```java
-// ✅ 先查订单，再批量查用户
-List<Order> orders = orderMapper.findAll();
-List<Long> userIds = orders.stream()
-    .map(Order::getUserId)
-    .distinct()
-    .collect(Collectors.toList());
-
-// 一次 IN 查询
-List<User> users = userMapper.findByIds(userIds);
-Map<Long, User> userMap = users.stream()
+// ✅ 用 IN 查询一次性获取所有用户
+List<Order> orders = orderDao.findAll();
+List<Long> userIds = orders.stream().map(Order::getUserId).collect(Collectors.toList());
+Map<Long, User> userMap = userDao.findByIds(userIds).stream()
     .collect(Collectors.toMap(User::getId, u -> u));
+orders.forEach(o -> o.setUser(userMap.get(o.getUserId())));
+`
 
-for (Order order : orders) {
-    order.setUser(userMap.get(order.getUserId()));
-}
-```
+### 案例 3：SELECT * 导致覆盖索引失效
 
-```xml
-<!-- MyBatis IN 查询 -->
-<select id="findByIds" resultType="User">
-    SELECT * FROM users WHERE id IN
-    <foreach collection="ids" item="id" open="(" separator="," close=")">
-        #{id}
-    </foreach>
-</select>
-```
+`sql
+-- ❌ SELECT * 需要回表，无法使用覆盖索引
+SELECT * FROM users WHERE name = 'Alice';
 
-**优化效果：**
+-- ✅ 按需查询，利用覆盖索引
+SELECT id, name, email FROM users WHERE name = 'Alice';
+-- 若索引包含 (name, id, email)，无需回表
+`
 
-| 方案 | 查询次数 | 耗时（100条） |
-|------|---------|-------------|
-| N+1 | 101次 | ~200ms |
-| JOIN | 1次 | ~5ms |
-| IN批量 | 2次 | ~8ms |
+### 案例 4：排序字段未加索引
 
-## 四、案例二：全表扫描优化
+`sql
+-- ❌ create_time 无索引，需 filesort
+SELECT * FROM orders WHERE user_id = 1 ORDER BY create_time DESC LIMIT 10;
+-- Extra: Using index condition; Using filesort
 
-### 4.1 问题 SQL
+-- ✅ 建联合索引，ORDER BY 也走索引
+ALTER TABLE orders ADD INDEX idx_user_create(user_id, create_time);
+-- Extra: Using index condition（无 filesort）
+`
 
-```sql
--- ❌ 慢查询：扫描 500 万行，耗时 8 秒
-SELECT * FROM order_items 
-WHERE DATE_FORMAT(create_time, '%Y-%m') = '2024-05'
-  AND amount > 100;
-```
+### 案例 5：统计大表 COUNT(*)
 
-### 4.2 EXPLAIN 分析（优化前）
+`sql
+-- ❌ COUNT(*) 全表扫描（没有 WHERE 条件时）
+SELECT COUNT(*) FROM orders;  -- 百万级耗时 0.5s+
 
-```sql
-EXPLAIN SELECT * FROM order_items 
-WHERE DATE_FORMAT(create_time, '%Y-%m') = '2024-05'
-  AND amount > 100\G
+-- ✅ 方案 A：使用 COUNT(索引列)，走二级索引（比主键更小）
+SELECT COUNT(status) FROM orders;
 
--- 输出关键信息
-type: ALL              ← 全表扫描
-rows: 5000000          ← 扫描 500 万行
-Extra: Using where     ← 无法使用索引
-```
+-- ✅ 方案 B：异步统计 + 缓存（Redis 维护计数器）
+-- ✅ 方案 C：近似值 EXPLAIN 中的 rows 字段
+`
 
-### 4.3 优化方案
+---
 
-```sql
--- ✅ 改写：使用范围查询，可以走 create_time 索引
-SELECT * FROM order_items 
-WHERE create_time >= '2024-05-01' 
-  AND create_time < '2024-06-01'
-  AND amount > 100;
+## 六、优化效果对比
 
--- 添加联合索引
-ALTER TABLE order_items 
-ADD INDEX idx_time_amount (create_time, amount);
-```
+| 优化类型 | 优化前 | 优化后 | 提升 |
+|---------|--------|--------|------|
+| 添加复合索引 | 3.5s（全表扫描）| 0.02s | 175x |
+| 大 OFFSET 改游标 | 2.3s | 0.001s | 2300x |
+| N+1 改 IN 查询 | 500ms（50次查询）| 5ms | 100x |
+| SELECT * 改按需查询 | 0.3s（回表）| 0.01s（覆盖索引）| 30x |
 
-### 4.4 EXPLAIN 分析（优化后）
+---
 
-```sql
-EXPLAIN SELECT * FROM order_items 
-WHERE create_time >= '2024-05-01' 
-  AND create_time < '2024-06-01'
-  AND amount > 100\G
+## 七、常见坑点与最佳实践
 
--- 输出关键信息
-type: range            ← 范围扫描
-key: idx_time_amount   ← 命中索引
-rows: 12000            ← 只扫描 1.2 万行
-Extra: Using index condition
-```
+### 坑 1：FORCE INDEX 误用掩盖真正问题
 
-| 指标 | 优化前 | 优化后 |
-|------|-------|-------|
-| type | ALL | range |
-| rows | 5,000,000 | 12,000 |
-| 耗时 | 8s | 0.05s |
+`sql
+-- ❌ 强制走索引只是绕过了优化器，没解决根本问题
+SELECT * FROM orders FORCE INDEX(idx_create_time) WHERE status = 'paid';
 
-## 五、案例三：ORDER BY 优化
+-- ✅ 应该分析为什么优化器没选这个索引（统计信息过期？区分度不足？）
+ANALYZE TABLE orders;  -- 更新统计信息
+`
 
-### 5.1 问题 SQL
+### 坑 2：过度依赖索引，忽略 SQL 改写
 
-```sql
--- ❌ 产生 filesort，耗时 3 秒
-SELECT id, title, create_time, view_count
-FROM articles
-WHERE category_id = 10
-ORDER BY view_count DESC
-LIMIT 20;
-```
+索引只能优化数据访问路径，SQL 逻辑问题（N+1、大 OFFSET）必须从 SQL 本身解决。
 
-### 5.2 EXPLAIN 分析
+---
 
-```sql
-EXPLAIN SELECT id, title, create_time, view_count
-FROM articles WHERE category_id = 10
-ORDER BY view_count DESC LIMIT 20\G
+## 八、总结与延伸
 
-type: ref
-key: idx_category         ← 用了 category_id 索引
-Extra: Using filesort     ← ❌ 额外排序，耗时
-```
+**慢查询优化 SOP**：
+1. 开启慢查询日志（long_query_time = 1）
+2. pt-query-digest 聚合分析，找 Top SQL
+3. EXPLAIN 分析执行计划（关注 type/key/rows/Extra）
+4. 按优先级优化：**索引** → **SQL 改写** → **架构调整**（分库分表/读写分离）
 
-### 5.3 优化：建联合索引
-
-```sql
--- ✅ 联合索引同时覆盖 WHERE 和 ORDER BY
-ALTER TABLE articles 
-ADD INDEX idx_category_view (category_id, view_count DESC);
-
--- 进一步：加上查询列，变为覆盖索引
-ALTER TABLE articles 
-ADD INDEX idx_category_view_cover (category_id, view_count DESC, id, title, create_time);
-```
-
-### 5.4 EXPLAIN 对比
-
-```sql
--- 优化后
-type: ref
-key: idx_category_view_cover
-Extra: Using index    ← ✅ 覆盖索引，无 filesort
-rows: 20              ← 精准返回 20 行
-```
-
-## 六、案例四：深度分页优化
-
-### 6.1 问题
-
-```sql
--- ❌ 深度分页：OFFSET 很大时极慢
-SELECT * FROM articles ORDER BY id LIMIT 10 OFFSET 1000000;
--- 实际扫描 1,000,010 行，只返回 10 行
-```
-
-### 6.2 优化：游标分页
-
-```sql
--- ✅ 记录上次最大 id，用 WHERE 代替 OFFSET
-SELECT * FROM articles 
-WHERE id > #{lastId}
-ORDER BY id 
-LIMIT 10;
-```
-
-### 6.3 优化：延迟关联
-
-```sql
--- ✅ 先用覆盖索引定位 id，再 JOIN 获取完整数据
-SELECT a.* 
-FROM articles a
-INNER JOIN (
-    SELECT id FROM articles 
-    ORDER BY id 
-    LIMIT 10 OFFSET 1000000
-) t ON a.id = t.id;
-```
-
-| 方案 | 扫描行数 | 耗时 |
-|------|---------|------|
-| OFFSET 分页 | 1,000,010 | ~2s |
-| 游标分页 | 10 | <1ms |
-| 延迟关联 | 1,000,010（仅索引） | ~200ms |
-
-## 七、慢查询优化总结流程
-
-```
-慢查询优化六步法：
-1. 开启慢查询日志，设置 long_query_time = 1
-2. 使用 pt-query-digest 找出 TOP 慢查询
-3. EXPLAIN 分析执行计划（重点看 type、rows、Extra）
-4. 针对性优化：
-   - type=ALL → 加索引
-   - Using filesort → 加联合索引覆盖 ORDER BY
-   - N+1 → 改 JOIN 或批量 IN
-   - 深度分页 → 游标分页或延迟关联
-5. 验证优化效果（EXPLAIN + 实际耗时）
-6. 上线监控，设置告警阈值
-```
-
-| 优化手段 | 适用场景 | 效果 |
-|---------|---------|------|
-| 添加索引 | 全表扫描 | 显著 |
-| 覆盖索引 | 频繁回表 | 中等 |
-| 联合索引 | ORDER BY/GROUP BY | 中等 |
-| 改写 SQL | N+1/全函数/前缀LIKE | 显著 |
-| 分页优化 | 深度分页 | 显著 |
-| 读写分离 | 读多写少 | 中等 |
-| 分表 | 单表数据量超千万 | 显著 |
+**延伸阅读方向**：
+- EXPLAIN ANALYZE（MySQL 8.0+）：获取实际执行耗时而非估算
+- optimizer_trace：查看 MySQL 优化器的完整决策过程
+- ProxySQL：数据库代理，内置查询规则和慢查询统计
+- 读写分离架构：主库写、从库读，减轻主库查询压力

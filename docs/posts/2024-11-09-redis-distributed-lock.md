@@ -1,389 +1,228 @@
-﻿# Redis 分布式锁：Redisson 实现原理与坑
+﻿# Redis 分布式锁：从 SETNX 到 Redisson 的演进
 
-<div class="post-meta">📅 2024-11-09 &nbsp;·&nbsp; 🏷️ <span class="tag">Redis</span> <span class="tag">分布式</span></div>
+<div class="post-meta">📅 2024-11-09 &nbsp;·&nbsp; 🏷️ <span class="tag">数据库</span></div>
 
-## 一、为什么需要分布式锁？
+秒杀场景下，库存扣减必须保证原子性。单机用 synchronized，分布式用什么？Redis 分布式锁是最常见的方案，但从简单的 SETNX 到生产可用，中间有很多坑要踩过——锁释放时机、锁续期、Redlock 的争议，每一个都是面试高频题。
 
-```
-单机环境：synchronized / ReentrantLock 即可解决并发问题
+---
 
-分布式环境：
-  服务A（节点1）  ←─── 同一资源 ───→  服务A（节点2）
-  synchronized 只在各自 JVM 内生效，无法跨进程加锁
+## 一、背景：为什么需要分布式锁
 
-需要分布式锁！
-```
+多实例部署下，JVM 内的 synchronized/ReentrantLock 只能保证单进程互斥，跨进程的共享资源竞争需要外部协调：
 
-**分布式锁的要求：**
+`
+实例 A（JVM 1）   实例 B（JVM 2）
+     ↓                  ↓
+  synchronized     synchronized
+  (各自独立，无法互斥)
+         ↓↓↓↓↓↓↓
+       MySQL / Redis（共享资源）← 竞争！
+`
 
-| 要求 | 说明 |
-|------|------|
-| 互斥性 | 同一时刻只有一个客户端持有锁 |
-| 不死锁 | 客户端崩溃后锁能自动释放 |
-| 可重入 | 同一客户端可以多次加锁 |
-| 高可用 | Redis 宕机不影响业务 |
-| 安全释放 | 只能由加锁的客户端释放锁 |
+**分布式锁的三个基本要求**：
+1. **互斥性**：同一时刻只有一个进程持有锁
+2. **安全释放**：只有锁的持有者能释放锁（防止误删他人锁）
+3. **防死锁**：持有锁的进程宕机后，锁能自动释放（超时机制）
 
-## 二、SETNX 原生实现及问题
+---
 
-### 2.1 基础实现
+## 二、演进路径：从 SETNX 到 Redisson
 
-```java
-// ❌ 早期实现（问题多）
-public boolean lock(String key) {
-    return redis.setnx(key, "1");  // 1: 加锁成功，0: 已被占用
-}
+### 版本 1：SETNX（有死锁风险）
 
-public void unlock(String key) {
-    redis.del(key);
-}
-```
+`java
+// ❌ 问题：SETNX 和 EXPIRE 是两个命令，非原子操作
+// 若 SETNX 成功后进程崩溃，锁永不释放
+redis.setnx("lock:stock", "1");
+redis.expire("lock:stock", 30);
+`
 
-**问题一：忘记设置过期时间 → 死锁**
+### 版本 2：SET NX EX（原子性，但有误删风险）
 
-```java
-// ❌ 如果在 setnx 和 expire 之间崩溃 → 死锁
-redis.setnx(key, "1");
-// 程序崩溃！
-redis.expire(key, 30);
+`java
+// ✅ 原子性：SET key value NX EX timeout（Redis 2.6.12+）
+boolean locked = redis.set("lock:stock", "1", SetParams.setParams().nx().ex(30));
 
-// ✅ 原子操作
-redis.set(key, "1", "NX", "EX", 30);  // NX + EX 原子设置
-```
-
-### 2.2 完整的 SETNX 实现
-
-```java
-@Component
-public class RedisLock {
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    private static final String UNLOCK_SCRIPT =
-        "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-        "    return redis.call('del', KEYS[1]) " +
-        "else " +
-        "    return 0 " +
-        "end";
-
-    /**
-     * 加锁
-     * @param key      锁 key
-     * @param value    唯一标识（UUID），防止误删他人的锁
-     * @param timeout  超时秒数
-     */
-    public boolean lock(String key, String value, long timeout) {
-        Boolean result = redisTemplate.opsForValue()
-            .setIfAbsent(key, value, timeout, TimeUnit.SECONDS);
-        return Boolean.TRUE.equals(result);
-    }
-
-    /**
-     * 解锁（Lua 脚本保证原子性）
-     */
-    public boolean unlock(String key, String value) {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>(UNLOCK_SCRIPT, Long.class);
-        Long result = redisTemplate.execute(script,
-            Collections.singletonList(key), value);
-        return Long.valueOf(1L).equals(result);
-    }
-}
-
-// 使用示例
-public void placeOrder(Long userId) {
-    String lockKey = "lock:order:" + userId;
-    String lockValue = UUID.randomUUID().toString();
-
-    boolean locked = redisLock.lock(lockKey, lockValue, 30);
-    if (!locked) {
-        throw new BizException("操作频繁，请稍后再试");
-    }
-    try {
-        // 核心业务逻辑
-        doPlaceOrder(userId);
-    } finally {
-        redisLock.unlock(lockKey, lockValue);
-    }
-}
-```
-
-### 2.3 SETNX 的剩余问题
-
-| 问题 | 说明 |
-|------|------|
-| 锁续期 | 业务超时后锁自动释放，但业务还在执行 → 并发问题 |
-| 不可重入 | 同一线程再次加锁会失败 |
-| 主从切换 | 主库写入后未同步从库，主库宕机，从库晋升后锁丢失 |
-
-## 三、Redisson 分布式锁
-
-### 3.1 引入依赖
-
-```xml
-<dependency>
-    <groupId>org.redisson</groupId>
-    <artifactId>redisson-spring-boot-starter</artifactId>
-    <version>3.23.5</version>
-</dependency>
-```
-
-### 3.2 配置
-
-```yaml
-spring:
-  redis:
-    host: localhost
-    port: 6379
-    password: ""
-
-# 或使用 redisson 独立配置
-redisson:
-  config: |
-    singleServerConfig:
-      address: "redis://localhost:6379"
-      password: ""
-      connectionPoolSize: 64
-      connectionMinimumIdleSize: 24
-```
-
-### 3.3 基础使用
-
-```java
-@Autowired
-private RedissonClient redisson;
-
-public void placeOrder(Long userId) {
-    RLock lock = redisson.getLock("lock:order:" + userId);
-    
-    // 方式一：默认加锁（30s 自动续期）
-    lock.lock();
-    try {
-        doPlaceOrder(userId);
-    } finally {
-        lock.unlock();
-    }
-}
-
-public void placeOrderWithTimeout(Long userId) {
-    RLock lock = redisson.getLock("lock:order:" + userId);
-    
-    // 方式二：指定等待时间和加锁时间（不自动续期）
-    boolean locked = false;
-    try {
-        locked = lock.tryLock(5, 30, TimeUnit.SECONDS);
-        // waitTime=5s（等待5秒还没获取则放弃），leaseTime=30s（30秒后自动释放）
-        if (locked) {
-            doPlaceOrder(userId);
-        } else {
-            throw new BizException("系统繁忙，请稍后重试");
-        }
-    } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-    } finally {
-        if (locked) {
-            lock.unlock();
-        }
-    }
-}
-```
-
-## 四、WatchDog 自动续期原理
-
-```
-WatchDog 机制（仅在不指定 leaseTime 时生效）：
-
-客户端加锁（默认 leaseTime = 30s）
-        ↓
-启动后台线程（每 10s 检查一次 = leaseTime / 3）
-        ↓
-如果持锁线程还在运行 → 将 TTL 重置为 30s（续期）
-        ↓
-如果持锁线程终止（宕机/异常）→ WatchDog 也停止 → TTL 自然过期 → 锁释放
-```
-
-```java
-// Redisson 源码（简化）
-private void scheduleExpirationRenewal(long threadId) {
-    ExpirationEntry entry = new ExpirationEntry();
-    
-    Timeout task = commandExecutor.getConnectionManager().newTimeout(
-        new TimerTask() {
-            @Override
-            public void run(Timeout timeout) {
-                // 每 internalLockLeaseTime / 3 执行一次
-                renewExpirationAsync(threadId);  // 续期
-            }
-        }, 
-        internalLockLeaseTime / 3,   // 延迟时间（10s）
-        TimeUnit.MILLISECONDS
-    );
-}
-
-// 续期 Lua 脚本
-private static final String RENEW_EXPIRATION_SCRIPT =
-    "if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
-    "    redis.call('pexpire', KEYS[1], ARGV[1]); " +
-    "    return 1; " +
-    "end; " +
-    "return 0;";
-```
-
-## 五、可重入锁原理（Hash 结构）
-
-Redisson 使用 **Hash** 结构存储锁，支持可重入：
-
-```
-Redis Hash 结构：
-key:   "lock:order:123"
-field: "uuid:thread_id"（客户端唯一标识 + 线程ID）
-value: 重入次数
-
-加锁一次后：
-HSET "lock:order:123" "uuid-xxx:thread-1" 1   TTL=30s
-
-同一线程再次加锁（可重入）：
-HINCRBY "lock:order:123" "uuid-xxx:thread-1" 1 → value=2
-
-解锁一次：
-HINCRBY "lock:order:123" "uuid-xxx:thread-1" -1 → value=1
-
-再次解锁：
-HINCRBY "lock:order:123" "uuid-xxx:thread-1" -1 → value=0
-DEL "lock:order:123"  ← 彻底释放
-```
-
-```java
-// 加锁 Lua 脚本（简化）
-private static final String LOCK_SCRIPT =
-    // 锁不存在
-    "if (redis.call('exists', KEYS[1]) == 0) then " +
-    "    redis.call('hincrby', KEYS[1], ARGV[2], 1); " +
-    "    redis.call('pexpire', KEYS[1], ARGV[1]); " +
-    "    return nil; " +
-    "end; " +
-    // 是自己的锁（可重入）
-    "if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then " +
-    "    redis.call('hincrby', KEYS[1], ARGV[2], 1); " +
-    "    redis.call('pexpire', KEYS[1], ARGV[1]); " +
-    "    return nil; " +
-    "end; " +
-    // 被其他客户端持有
-    "return redis.call('pttl', KEYS[1]);";
-```
-
-## 六、RedLock 算法
-
-解决**主从切换**导致的锁丢失问题：
-
-```
-RedLock 原理（需要 N 个独立的 Redis 主节点，通常 N=5）：
-
-① 记录开始时间 startTime
-② 向 5 个 Redis 节点依次尝试加锁（每个节点超时时间短：约 50ms）
-③ 如果超过半数节点（≥ 3个）加锁成功，且耗时 < TTL：
-   → 加锁成功！有效锁时长 = TTL - 耗时
-④ 否则：向所有节点发送解锁命令，加锁失败
-
-容忍故障：5 个节点最多可以有 2 个宕机，仍能正常工作
-```
-
-```java
-// Redisson RedLock 使用
-RLock lock1 = redisson1.getLock("distributed-lock");
-RLock lock2 = redisson2.getLock("distributed-lock");
-RLock lock3 = redisson3.getLock("distributed-lock");
-
-RedissonRedLock redLock = new RedissonRedLock(lock1, lock2, lock3);
-
-boolean locked = redLock.tryLock(100, 10000, TimeUnit.MILLISECONDS);
 if (locked) {
     try {
         // 业务逻辑
+        deductStock();
     } finally {
-        redLock.unlock();
+        redis.del("lock:stock");  // ❌ 问题：可能删除别人的锁！
+        // 场景：业务超时 > 锁过期 → 锁被其他进程获取 → 本进程删了别人的锁
     }
 }
-```
+`
 
-## 七、常见坑
+### 版本 3：SET NX EX + 唯一 Value（安全释放）
 
-### 7.1 主从切换锁丢失
+`java
+String lockValue = UUID.randomUUID().toString();  // 唯一标识
 
-```
-问题：
-  主库加锁成功（写入 key）
-  主库宕机，尚未同步到从库
-  从库晋升为主库
-  另一个客户端成功加锁（锁已不存在）
-  ← 两个客户端同时持有锁！
+boolean locked = redis.set("lock:stock", lockValue, SetParams.setParams().nx().ex(30));
 
-解决：
-  方案1：使用 RedLock（多节点）
-  方案2：业务层面做幂等性保障
-  方案3：Zookeeper 分布式锁（CP 系统，一致性更强）
-```
-
-### 7.2 锁超时业务未完成
-
-```java
-// ❌ 指定了 leaseTime=5s，但业务可能超过 5s
-lock.tryLock(1, 5, TimeUnit.SECONDS);
-
-// ✅ 不指定 leaseTime，启用 WatchDog 自动续期
-lock.lock();  // 默认 30s + 自动续期
-
-// ✅ 或者估算业务时间后留足余量
-lock.tryLock(1, 60, TimeUnit.SECONDS);  // 给足 60s
-```
-
-### 7.3 忘记释放锁
-
-```java
-// ❌ 异常时未释放锁
-lock.lock();
-doSomething();   // 如果这里抛出异常，锁永远不会释放（直到 TTL）
-lock.unlock();
-
-// ✅ 使用 try-finally
-lock.lock();
-try {
-    doSomething();
-} finally {
-    lock.unlock();  // 保证释放
+if (locked) {
+    try {
+        deductStock();
+    } finally {
+        // ❌ 版本 3 的问题：GET 和 DEL 仍是两步，非原子
+        if (lockValue.equals(redis.get("lock:stock"))) {
+            redis.del("lock:stock");  // 可能在 GET 和 DEL 之间锁过期又被别人获取
+        }
+    }
 }
-```
+`
 
-### 常见坑汇总
+### 版本 4：Lua 脚本保证释放的原子性（生产可用）
 
-| 坑 | 原因 | 解决方案 |
-|----|------|---------|
-| 死锁 | 未设置 TTL / 未释放锁 | try-finally + TTL |
-| 锁超时 | 业务时间 > 锁 TTL | WatchDog 续期 |
-| 误删他人锁 | 未携带唯一标识 | UUID 标识 + Lua 原子删除 |
-| 主从锁丢失 | 主从异步复制 | RedLock / Zookeeper |
-| 非公平竞争 | 大量线程抢锁 | 公平锁 `getFairLock()` |
+`java
+String lockValue = UUID.randomUUID().toString();
 
-## 八、Redisson 其他锁类型
+boolean locked = redis.set("lock:stock", lockValue, SetParams.setParams().nx().ex(30));
 
-```java
-// 公平锁（FIFO 顺序）
-RLock fairLock = redisson.getFairLock("fairLock");
+if (locked) {
+    try {
+        deductStock();
+    } finally {
+        // ✅ Lua 脚本：GET + DEL 原子执行
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then " +
+                        "    return redis.call('del', KEYS[1]) " +
+                        "else return 0 end";
+        redis.eval(script, Collections.singletonList("lock:stock"),
+                           Collections.singletonList(lockValue));
+    }
+}
+`
 
-// 读写锁
-RReadWriteLock rwLock = redisson.getReadWriteLock("rwLock");
-rwLock.readLock().lock();   // 读锁（允许多个）
-rwLock.writeLock().lock();  // 写锁（互斥）
+### 版本 5：Redisson（生产首选）
 
-// 信号量
-RSemaphore semaphore = redisson.getSemaphore("semaphore");
-semaphore.trySetPermits(10);  // 允许 10 个并发
-semaphore.acquire();
-semaphore.release();
+Redisson 封装了所有细节，还额外解决了**锁续期（看门狗）**问题：
 
-// 倒计时锁
-RCountDownLatch latch = redisson.getCountDownLatch("latch");
-latch.trySetCount(3);
-latch.await();      // 等待计数到 0
-latch.countDown();  // 计数减1
-```
+`java
+@Autowired
+private RedissonClient redissonClient;
+
+public void deductStock(Long itemId) {
+    RLock lock = redissonClient.getLock("lock:stock:" + itemId);
+
+    // 尝试获取锁：最多等待 5s，持有锁最长 30s
+    boolean locked = lock.tryLock(5, 30, TimeUnit.SECONDS);
+    if (!locked) {
+        throw new BusinessException("系统繁忙，请稍后重试");
+    }
+
+    try {
+        // 业务逻辑
+        int stock = stockDao.getStock(itemId);
+        if (stock <= 0) throw new BusinessException("库存不足");
+        stockDao.deduct(itemId, 1);
+    } finally {
+        if (lock.isHeldByCurrentThread()) {
+            lock.unlock();  // 安全释放（只释放自己的锁）
+        }
+    }
+}
+`
+
+**Redisson 看门狗机制**：若未指定 leaseTime，Redisson 默认 30s，并启动后台线程每 10s 续期一次，直到业务方法完成：
+
+`
+业务方法执行中
+    ↓ 每 10s
+Watchdog 线程：SET PX 30000 → 续期
+    ↓ 业务完成
+unlock()：释放锁，Watchdog 停止
+`
+
+---
+
+## 三、Redlock：多节点 Redis 的分布式锁
+
+单节点 Redis 的问题：主节点宕机后，从节点可能尚未同步锁数据，导致锁丢失。
+
+Redlock 使用 **N 个独立 Redis 节点**（推荐 5 个），向多数节点（N/2+1）申请锁：
+
+`java
+// Redisson 实现 Redlock
+RLock lock1 = redisson1.getLock("lock:stock");
+RLock lock2 = redisson2.getLock("lock:stock");
+RLock lock3 = redisson3.getLock("lock:stock");
+
+RedissonRedLock redLock = new RedissonRedLock(lock1, lock2, lock3);
+redLock.lock();
+try {
+    // 业务逻辑
+} finally {
+    redLock.unlock();
+}
+`
+
+**Redlock 争议**：Redis 作者 Antirez 和 Martin Kleppmann 有著名争论——Redlock 在时钟漂移场景下不是绝对安全的。生产中，若对分布式锁有极高安全要求，考虑 **ZooKeeper** 或 **etcd** 锁（基于强一致性协议 Paxos/Raft）。
+
+---
+
+## 四、分布式锁方案对比
+
+| 方案 | 性能 | 可靠性 | 复杂度 | 适用场景 |
+|------|------|--------|--------|---------|
+| Redis SETNX + Lua | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | 低 | 大多数业务场景 |
+| Redisson | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 低（封装好）| 生产首选 |
+| Redlock | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 高 | 高可用要求 |
+| ZooKeeper | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 高 | 强一致性要求 |
+| 数据库悲观锁 | ⭐⭐ | ⭐⭐⭐⭐⭐ | 低 | 低并发 + 事务场景 |
+
+---
+
+## 五、常见坑点与最佳实践
+
+### 坑 1：锁粒度太粗，退化为单线程
+
+`java
+// ❌ 用同一把锁锁住所有商品，并发度降为 1
+RLock lock = redissonClient.getLock("lock:stock");
+
+// ✅ 按商品 ID 加锁，不同商品并发不阻塞
+RLock lock = redissonClient.getLock("lock:stock:" + itemId);
+`
+
+### 坑 2：锁内发送 HTTP 请求，业务超时导致锁过期
+
+`java
+// ❌ 锁内调用第三方接口，若超时 > 锁 TTL，锁提前释放
+RLock lock = redissonClient.getLock("lock:order");
+lock.lock(5, TimeUnit.SECONDS);
+try {
+    thirdPartyService.call();   // 可能超时
+    orderDao.update();           // 此时锁已释放！
+} finally {
+    lock.unlock();
+}
+
+// ✅ 锁内不做 IO，或使用 Redisson 看门狗（不指定 leaseTime）
+lock.lock();  // 不指定时间，启用看门狗自动续期
+`
+
+### 坑 3：非持有者调用 unlock() 抛异常
+
+`java
+// ✅ 释放前检查是否仍持有锁
+if (lock.isHeldByCurrentThread()) {
+    lock.unlock();
+}
+`
+
+---
+
+## 六、总结与延伸
+
+**核心要点**：
+- 分布式锁三要素：互斥、安全释放（Lua 保原子）、防死锁（TTL）
+- 生产使用 **Redisson**：封装了 SET NX EX + Lua 释放 + 看门狗续期，开箱即用
+- 锁粒度要细，不要用一把大锁串行所有请求
+- Redlock 在多节点 Redis 场景使用，但争议较大，极高一致性要求考虑 ZooKeeper
+
+**延伸阅读方向**：
+- Redisson 公平锁、联锁、信号量：更丰富的分布式同步原语
+- ZooKeeper 临时节点锁：利用临时节点特性，进程宕机自动释放锁
+- 数据库乐观锁（CAS）：UPDATE ... WHERE version = ?，适合低并发写场景
+- 幂等设计：分布式锁保证互斥，幂等保证重试安全，两者配合才能真正防重
