@@ -243,3 +243,9 @@ const { hasPermission } = usePermission()
 | 刷新问题 | `beforeEach` 检测 userInfo，无则重新加载 |
 | 按钮权限 | 自定义指令 `v-permission` 或 `v-if` + composable |
 | 退出重置 | `router.removeRoute` 清除动态路由 |
+
+**延伸阅读**：
+- [Vue Router 官方文档](https://router.vuejs.org/zh/) — 导航守卫、路由懒加载、滚动行为完整 API
+- [Pinia vs Vuex 状态管理](./2025-08-10-pinia-vs-vuex.md) — 权限 Store 推荐用 Pinia 实现
+- RBAC 权限模型设计 — 角色→权限→资源三级模型，适合中后台系统的权限体系
+- [Vite 构建原理](./2025-09-21-vite-vs-webpack.md) — 前端工程化与权限路由的配合

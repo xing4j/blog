@@ -290,3 +290,9 @@ service.interceptors.response.use(null, async error => {
 | 取消重复请求 | CancelToken + Map 记录进行中请求 |
 | 路由切换取消请求 | `router.beforeEach` + `clearPending` |
 | token 无感刷新 | 响应拦截器 + 请求队列 |
+
+**延伸阅读**：
+- [axios 官方文档](https://axios-http.com/zh/docs/intro) — 拦截器、适配器、取消请求完整 API
+- JWT 无感刷新实现思路 — 结合 Refresh Token 与请求队列的生产级方案
+- [Vue Router 权限控制](./2024-10-05-vue-router-permission.md) — 路由切换时取消进行中请求
+- OpenAPI/Swagger 代码生成 — 用工具自动生成 API 层，减少手写 axios 封装的维护成本

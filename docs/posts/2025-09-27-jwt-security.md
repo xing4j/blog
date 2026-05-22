@@ -224,3 +224,9 @@ ResponseCookie.from("access_token", accessToken)
 | 敏感信息 | Payload 只存 userId/roles |
 | 传输安全 | 强制 HTTPS |
 | Cookie 存储 | httpOnly + Secure + SameSite |
+
+**延伸阅读**：
+- [JWT 官方规范 RFC 7519](https://tools.ietf.org/html/rfc7519) — Token 结构与声明字段标准
+- [OWASP API Security](https://owasp.org/www-project-api-security/) — API 认证安全最佳实践
+- [Spring Security OAuth2](https://spring.io/projects/spring-security) — 完整的授权服务器实现
+- 无状态 Token vs Session — 微服务架构下两种认证方案的取舍分析

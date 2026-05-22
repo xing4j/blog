@@ -438,3 +438,20 @@ router.beforeEach(() => {
 ```
 
 **选型建议**：新项目一律使用 Pinia，它更简洁、TypeScript 友好、体积小，是 Vue 官方推荐的标准方案。旧项目如无特殊原因可暂时保留 Vuex，迁移时参考上述对照表逐步替换。
+
+---
+
+## 九、总结与延伸
+
+**核心要点**：
+1. **Pinia 已成为 Vue 3 官方推荐的状态管理库**，相比 Vuex 4 更轻量（无 mutations）、TypeScript 原生支持更好、支持多个独立 Store
+2. Pinia 的 `$patch` 批量更新比单独赋值性能更好（一次响应式触发 vs 多次），复杂更新推荐 `$patch(state => {...})`
+3. **状态持久化**推荐 `pinia-plugin-persistedstate`，可精确指定持久化的字段和存储位置
+4. 跨 Store 依赖直接 `import` 另一个 Store 的 `action` 即可，比 Vuex 的 `rootGetters` 简洁得多
+5. 从 Vuex 迁移时，一个 module 对应一个 Pinia Store，`state/getters/mutations/actions` → `state/getters/actions`
+
+**延伸阅读**：
+- [Pinia 官方文档](https://pinia.vuejs.org/zh/) — 完整 API 参考与插件开发指南
+- [pinia-plugin-persistedstate](https://github.com/prazdevs/pinia-plugin-persistedstate) — 状态持久化首选插件
+- [Vue 3 Composition API](https://vuejs.org/guide/reusability/composables.html) — Pinia Setup Store 与 Composable 的配合
+- [Vue Router 权限控制](./2024-10-05-vue-router-permission.md) — 权限 Store 在路由守卫中的实践

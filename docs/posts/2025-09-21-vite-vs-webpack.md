@@ -391,3 +391,20 @@ plugins: [
 | 超大型遗留项目 | webpack 5 | 成熟稳定，迁移风险低 |
 
 **总结**：对于 2024 年以后的新项目，**Vite 是默认选择**。它不是 webpack 的替代品，而是开发体验的重大飞跃——特别是在开发阶段的冷启动和 HMR 速度上，带来的生产力提升是实质性的。
+
+---
+
+## 九、总结与延伸
+
+**核心要点**：
+1. **Vite 的快速启动核心**：利用浏览器原生 ES Module，开发时不打包，按需编译（`esbuild` 预构建 node_modules，Go 编写，比 JS 快 10-100 倍）
+2. **HMR 热更新速度**：Vite 的 HMR 只更新变更的模块，与项目规模无关；webpack HMR 需要重新构建整条依赖链，项目越大越慢
+3. **生产构建**仍用 Rollup（不是 esbuild），因为 Rollup 的 Tree Shaking 和代码分割更成熟；esbuild 目前不支持代码分割（计划中）
+4. **webpack 依然有优势**：生态更成熟、loader 更丰富、对旧项目/旧浏览器兼容性更好、配置更细粒度
+5. 新项目优先 Vite，老项目视情况迁移（成本不低，尤其是有大量 webpack loader 配置时）
+
+**延伸阅读**：
+- [Vite 官方文档](https://cn.vitejs.dev/) — 配置参考与插件开发指南
+- [Rollup 官方文档](https://rollupjs.org/) — 理解 Vite 生产构建的底层原理
+- [esbuild 性能基准](https://esbuild.github.io/) — Go 编写的构建工具与 JS 构建工具的性能对比数据
+- [Webpack 5 迁移指南](https://webpack.js.org/migrate/5/) — 了解 webpack 现状（Module Federation/Asset Modules）
