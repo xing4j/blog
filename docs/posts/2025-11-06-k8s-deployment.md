@@ -247,3 +247,9 @@ spec:
 | StatefulSet | 有状态应用（数据库/消息队列）|
 | ResourceQuota | 命名空间资源限额 |
 | 滚动更新 | 零停机发布，支持一键回滚 |
+
+**延伸阅读**：
+- [Kubernetes 核心概念](./2025-03-09-kubernetes-basics.md) — Pod/Deployment/Service 基础
+- [Kubernetes 官方文档 - 存储](https://kubernetes.io/zh-cn/docs/concepts/storage/) — PV/PVC/StorageClass 完整说明
+- [Ingress NGINX](https://kubernetes.github.io/ingress-nginx/) — 生产 Ingress 控制器配置参考
+- [CI/CD 流水线](./2025-12-13-cicd-pipeline.md) — GitHub Actions 自动部署到 K8s

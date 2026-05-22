@@ -219,3 +219,9 @@ services:
 | 停止并清理 | `docker compose down -v` |
 | 进入容器 | `docker compose exec [service] bash` |
 | 多环境区分 | `-f` 参数叠加 compose 文件 |
+
+**延伸阅读**：
+- [Docker Compose 官方文档](https://docs.docker.com/compose/) — 完整配置字段参考
+- [Docker 基础入门](./2024-12-01-docker-basics.md) — 镜像/容器/网络前置知识
+- [Dockerfile 最佳实践](./2025-06-21-dockerfile-best-practices.md) — Compose 依赖的 Dockerfile 优化
+- Docker Compose vs K8s — 本地开发用 Compose，生产环境用 K8s，互补而非替代

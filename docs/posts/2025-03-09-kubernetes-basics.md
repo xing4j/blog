@@ -219,3 +219,9 @@ spec:
 | ConfigMap / Secret | 配置与敏感信息管理 |
 | Namespace | 集群内的逻辑隔离 |
 | HPA | 基于指标的自动扩缩容 |
+
+**延伸阅读**：
+- [Kubernetes 官方文档](https://kubernetes.io/zh-cn/docs/home/) — Pod/Deployment/Service 完整规格说明
+- [kubectl 速查表](https://kubernetes.io/zh-cn/docs/reference/kubectl/cheatsheet/) — 常用命令汇总
+- [K8s 生产部署实践](./2025-11-06-k8s-deployment.md) — Ingress/PVC/StatefulSet 进阶配置
+- [Helm 包管理](https://helm.sh/zh/docs/) — K8s 应用的模板化管理工具

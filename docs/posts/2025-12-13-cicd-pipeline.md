@@ -210,3 +210,9 @@ on:
 | 多版本测试 | `strategy.matrix` |
 | 环境审批 | `environment: production`（在 Settings 配置 Reviewer）|
 | 敏感信息 | Settings → Secrets and variables → Actions |
+
+**延伸阅读**：
+- [GitHub Actions 文档](https://docs.github.com/cn/actions) — 完整的 workflow 语法和触发事件
+- [K8s 生产部署](./2025-11-06-k8s-deployment.md) — CI/CD 目标环境的 K8s 配置
+- [Dockerfile 最佳实践](./2025-06-21-dockerfile-best-practices.md) — 流水线中 Docker 镜像构建优化
+- GitLab CI vs GitHub Actions vs Jenkins — 三大 CI/CD 工具的选型对比

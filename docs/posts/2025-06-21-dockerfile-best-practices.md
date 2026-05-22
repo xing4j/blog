@@ -185,3 +185,9 @@ ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.JarLaun
 | Alpine 基础镜像 | 体积小、攻击面小 |
 | 非 root 用户 | 安全加固 |
 | HEALTHCHECK | 容器健康检测 |
+
+**延伸阅读**：
+- [Dockerfile 官方最佳实践](https://docs.docker.com/develop/dev-best-practices/) — 官方镜像优化指南
+- [Docker 多阶段构建](https://docs.docker.com/build/building/multi-stage/) — 进阶构建模式
+- [Docker 基础入门](./2024-12-01-docker-basics.md) — 镜像/容器/网络核心概念
+- [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/) — 多平台镜像构建（amd64/arm64）
