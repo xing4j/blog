@@ -420,3 +420,20 @@ Nacos 集群架构：
 | 集群脑裂 | 网络分区 | 检查 cluster.conf，确保奇数节点 |
 | 服务发现延迟 | 心跳超时 | 调小 `heartbeat-interval` |
 | 配置加载顺序 | bootstrap 未生效 | 引入 `spring-cloud-starter-bootstrap` |
+
+---
+
+## 八、总结与延伸
+
+**核心要点**：
+1. Nacos 集**注册中心 + 配置中心**于一体，是 Spring Cloud Alibaba 生态的基础设施组件
+2. **临时实例**（Ephemeral）通过心跳保活，下线后自动摘除；**持久实例**需手动注销，适合 IP 固定的基础设施
+3. 动态配置刷新必须配合 **`@RefreshScope`**，推荐结合 `@ConfigurationProperties` 做类型安全的配置绑定
+4. **三级隔离**（Namespace → Group → DataId）是多环境隔离的最佳实践：Namespace 隔离环境，Group 隔离业务域
+5. 集群部署需奇数节点（Raft 协议选主）+ MySQL 持久化；默认内嵌 Derby 仅用于开发环境，生产必须替换
+
+**延伸阅读**：
+- [Nacos 官方文档](https://nacos.io/zh-cn/docs/what-is-nacos.html) — 架构设计与 API 参考
+- [Spring Cloud Alibaba 版本兼容表](https://github.com/alibaba/spring-cloud-alibaba/wiki/版本说明) — 避免组件版本不匹配
+- Nacos 1.x vs 2.x — 2.x 引入 gRPC 长连接，推送延迟从秒级降到毫秒级，生产推荐 2.x
+- [Sentinel + Nacos 规则持久化](./2025-04-26-sentinel-rate-limit.md) — 配合 Nacos 实现限流规则热更新

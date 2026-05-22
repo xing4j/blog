@@ -347,3 +347,20 @@ public class UserFeignFallback implements UserFeignClient {
 | 高内聚 | 相关功能放在同一服务 | 用户注册和用户支付分两个服务 |
 | 独立部署 | 每个服务独立打包部署 | 多个服务共用一个 JAR |
 | 故障隔离 | 单服务故障不影响整体 | 无熔断降级，级联故障 |
+
+---
+
+## 八、总结与延伸
+
+**核心要点**：
+1. Spring Cloud Alibaba 技术栈已成国内微服务首选：**Nacos（注册+配置）+ Gateway（网关）+ Sentinel（熔断限流）+ OpenFeign（服务调用）+ Seata（分布式事务）**
+2. 组件版本必须对齐，推荐通过 `spring-cloud-alibaba-dependencies` BOM 统一管理，避免手动指定版本导致的兼容问题
+3. 微服务的复杂度不仅在代码，更在**服务治理**：注册发现、配置管理、熔断降级、链路追踪缺一不可
+4. 拆分粒度的黄金原则：**单一职责 + 独立部署 + 不共享数据库**；过度拆分（纳米服务）会显著增加运维负担和网络开销
+
+**延伸阅读**：
+- [Spring Cloud Alibaba GitHub](https://github.com/alibaba/spring-cloud-alibaba) — 版本兼容表与最新特性
+- [微服务架构设计模式](https://microservices.io/patterns/index.html) — Chris Richardson 著，服务治理最佳实践
+- [Nacos 注册与配置中心](./2025-02-15-nacos-registry-config.md) — 注册发现与动态配置详解
+- [Sentinel 限流熔断](./2025-04-26-sentinel-rate-limit.md) — 流控与熔断规则深度实践
+- [OpenFeign 超时重试](./2025-09-06-openfeign-timeout-retry.md) — 服务间调用的可靠性保障

@@ -483,3 +483,20 @@ feign:
         read-timeout: 10000
         logger-level: BASIC
 ```
+
+---
+
+## 十、总结与延伸
+
+**核心要点**：
+1. OpenFeign 底层是**JDK 动态代理 + ReflectiveFeign**，`@FeignClient` 接口在启动时被代理为可执行的 HTTP 客户端，调用过程经过 Encoder → Retryer → Client → Decoder 流水线
+2. **超时配置**：`connect-timeout` 控制 TCP 连接建立，`read-timeout` 控制等待响应时间；单个服务配置的优先级高于 default 全局配置
+3. **重试策略**默认关闭（`NEVER_RETRY`），开启时必须确保接口**幂等**，否则 POST/DELETE 重复调用会导致数据不一致
+4. `ErrorDecoder` 用于将 HTTP 4xx/5xx 映射为业务异常，避免上层直接处理裸露的 `FeignException`
+5. 生产推荐：**OkHttp（连接池）+ Sentinel 熔断 + BASIC 日志级别**，避免 FULL 日志泄露请求体中的敏感信息
+
+**延伸阅读**：
+- [Spring Cloud OpenFeign 文档](https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/) — 完整配置项与高级用法
+- [OkHttp3 连接池原理](https://square.github.io/okhttp/) — 为什么推荐 OkHttp 替换默认 HttpClient
+- [Sentinel 熔断降级](./2025-04-26-sentinel-rate-limit.md) — 与 OpenFeign 集成的熔断降级实践
+- [Spring Cloud 全景](./2025-06-27-spring-cloud-overview.md) — OpenFeign 在整体微服务架构中的位置

@@ -418,3 +418,33 @@ spring:
             data-type: json
             rule-type: param-flow
 ```
+
+---
+
+## 九、常见坑点与最佳实践
+
+| 坑点 | 现象 | 解决方案 |
+|------|------|---------|
+| 规则不持久化 | 服务重启后限流规则丢失 | 集成 Nacos 规则持久化（第七章） |
+| 注解失效 | `@SentinelResource` 不生效 | Bean 必须通过 Spring 容器获取，不能 new |
+| blockHandler 不执行 | 抛了限流异常但没降级 | blockHandler 方法签名须与原方法相同，并增加 `BlockException` 参数 |
+| fallback 与 blockHandler 混淆 | 业务异常走了 blockHandler | blockHandler 处理限流/熔断，fallback 处理业务异常，各司其职 |
+| 热点参数索引错误 | QPS 计算不准确 | 热点参数索引从 0 开始，与方法参数顺序对应 |
+| Dashboard 无监控数据 | 控制台看不到流量 | 确认 `sentinel.transport.dashboard` 配置正确且端口可达 |
+
+---
+
+## 十、总结与延伸
+
+**核心要点**：
+1. Sentinel 三大核心能力：**流控（限 QPS/线程数）**、**熔断（慢调用/异常比例/异常数）**、**系统保护（CPU/RT/QPS）**
+2. 流控三种模式：**直接**（当前资源）、**关联**（保护被关联资源）、**链路**（按调用链路区分来源）
+3. 熔断状态机：**Closed → Open（触发阈值）→ Half-Open（统计窗口到期后探测）→ Closed（探测成功）**
+4. **规则必须持久化到 Nacos** 等外部存储，否则服务重启后规则丢失
+5. `@SentinelResource` 的 `blockHandler` 和 `fallback` 职责不同，不要混用
+
+**延伸阅读**：
+- [Sentinel 官方文档](https://sentinelguard.io/zh-cn/docs/introduction.html) — 完整规则类型与 API
+- [Sentinel vs Hystrix vs Resilience4j](https://sentinelguard.io/zh-cn/blog/sentinel-vs-hystrix.html) — 限流熔断框架对比
+- Sentinel 集群限流 — 单机限流无法满足整体 QPS 需求时的分布式限流方案
+- [Nacos 配置中心](./2025-02-15-nacos-registry-config.md) — 规则持久化的基础设施
