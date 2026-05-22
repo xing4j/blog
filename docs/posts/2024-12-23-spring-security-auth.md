@@ -13,7 +13,7 @@ Spring Security 是 Spring 生态中最复杂的模块之一，初学者往往�
 
 Spring Security 通过一条 **Filter 链**（SecurityFilterChain）依次处理这两件事：
 
-`
+```
 HTTP 请求
     ↓
 UsernamePasswordAuthenticationFilter（认证）
@@ -21,13 +21,12 @@ UsernamePasswordAuthenticationFilter（认证）
 FilterSecurityInterceptor（授权）
     ↓
 Controller
-`
-
+```
 ---
 
 ## 二、核心架构：Filter 链与 SecurityContext
 
-`
+```
 SecurityFilterChain（15+ 个 Filter 组成的链）
     ↓
 AuthenticationManager.authenticate(token)
@@ -37,8 +36,7 @@ AuthenticationProvider（支持多种认证方式）
 UserDetailsService.loadUserByUsername()  ← 开发者实现
     ↓
 返回 Authentication 对象，存入 SecurityContextHolder（ThreadLocal）
-`
-
+```
 **核心类关系**：
 - SecurityContextHolder：存储当前线程的安全上下文（ThreadLocal）
 - Authentication：代表认证主体，包含 principal（用户）、credentials（凭证）、authorities（权限）
@@ -53,14 +51,13 @@ Session 认证需要服务端存储状态，不适合分布式系统。JWT（JSO
 
 ### 3.1 JWT 结构
 
-`
+```
 eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsInJvbGVzIjpbIlJPTEVfVVNFUiJdLCJleHAiOjE2...}
     Header（算法）        Payload（用户信息/过期时间）        Signature（签名）
-`
-
+```
 ### 3.2 完整配置
 
-`java
+```java
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity  // 启用方法级权限注解（@PreAuthorize 等）
@@ -85,11 +82,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();  // 密码加密
     }
 }
-`
-
+```
 ### 3.3 JWT 过滤器
 
-`java
+```java
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -127,11 +123,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-`
-
+```
 ### 3.4 登录接口
 
-`java
+```java
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -151,11 +146,10 @@ public class AuthController {
         return ResponseEntity.ok(new TokenResponse(token));
     }
 }
-`
-
+```
 ### 3.5 方法级权限控制
 
-`java
+```java
 @Service
 public class UserService {
     // 需要 ADMIN 角色
@@ -170,8 +164,7 @@ public class UserService {
     @PreAuthorize("hasAuthority('user:write')")
     public void updateUser(User user) { ... }
 }
-`
-
+```
 ---
 
 ## 四、对比：Session 认证 vs JWT 认证
@@ -191,17 +184,16 @@ public class UserService {
 
 ### 坑 1：JWT 无法主动失效
 
-`
+```
 问题：用户退出登录，但 Token 仍有效期内可用
 解决方案：
 - 短 Token 有效期（15分钟）+ Refresh Token 刷新机制
 - 维护 Token 黑名单（Redis Set 存储已退出的 Token JTI）
 - 修改密码时，用密码 Hash 作为 JWT Secret 的一部分（密码改变=旧 Token 自动失效）
-`
-
+```
 ### 坑 2：密码明文存储
 
-`java
+```java
 // ❌ 绝对禁止明文存储密码
 user.setPassword(password);
 
@@ -210,18 +202,16 @@ user.setPassword(passwordEncoder.encode(password));
 
 // ✅ 验证时
 boolean match = passwordEncoder.matches(rawPassword, encodedPassword);
-`
-
+```
 ### 坑 3：hasRole vs hasAuthority 的区别
 
-`java
+```java
 // hasRole("ADMIN") 等价于 hasAuthority("ROLE_ADMIN")
 // Spring Security 会自动在 role 前加 ROLE_ 前缀
 
 // 所以数据库存 "ROLE_ADMIN"，用 hasRole("ADMIN") 检查
 // 存 "user:write"，用 hasAuthority("user:write") 检查
-`
-
+```
 ---
 
 ## 六、总结与延伸

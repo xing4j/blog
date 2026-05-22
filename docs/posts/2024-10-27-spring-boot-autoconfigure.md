@@ -19,7 +19,7 @@ Spring Boot 的目标：让 80% 的场景下，引入依赖即可用。
 
 ## 二、自动装配的核心流程
 
-`
+```
 @SpringBootApplication
     ↓ 包含
 @EnableAutoConfiguration
@@ -31,23 +31,21 @@ spring.factories / AutoConfiguration.imports（Spring Boot 3.x）
 符合条件的 AutoConfiguration 类
     ↓ 执行
 注册所需的 Bean 到容器
-`
-
+```
 ### 2.1 入口：@EnableAutoConfiguration
 
-`java
+```java
 @SpringBootApplication
 // 等价于：
 @SpringBootConfiguration
 @EnableAutoConfiguration   // ← 自动装配的开关
 @ComponentScan
-`
-
+```
 ### 2.2 SPI 配置文件
 
 Spring Boot 通过类 SPI 机制发现所有自动配置类：
 
-`
+```
 Spring Boot 2.x：
 META-INF/spring.factories 文件中：
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
@@ -58,13 +56,12 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 Spring Boot 3.x（新格式）：
 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 文件中每行一个自动配置类全限定名
-`
-
+```
 ### 2.3 @Conditional：按需生效
 
 自动配置类不是全部生效，通过 @Conditional 系列注解控制：
 
-`java
+```java
 @Configuration
 @ConditionalOnClass(RedisOperations.class)          // classpath 有 Redis 相关类时生效
 @EnableConfigurationProperties(RedisProperties.class) // 读取 spring.redis.* 配置
@@ -87,8 +84,7 @@ public class RedisAutoConfiguration {
         return new StringRedisTemplate(connectionFactory);
     }
 }
-`
-
+```
 **关键注解速查**：
 
 | 注解 | 条件 |
@@ -107,7 +103,7 @@ public class RedisAutoConfiguration {
 
 ### 3.1 项目结构
 
-`
+```
 rate-limit-spring-boot-starter/
 ├── src/main/java/
 │   └── com/example/ratelimit/
@@ -118,11 +114,10 @@ rate-limit-spring-boot-starter/
     └── META-INF/
         └── spring/
             └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
-`
-
+```
 ### 3.2 配置属性类
 
-`java
+```java
 @ConfigurationProperties(prefix = "ratelimit")
 public class RateLimitProperties {
     private int maxRequests = 100;   // 默认每秒最大请求数
@@ -131,11 +126,10 @@ public class RateLimitProperties {
 
     // getters/setters
 }
-`
-
+```
 ### 3.3 自动配置类
 
-`java
+```java
 @AutoConfiguration
 @ConditionalOnClass(RateLimitService.class)              // 依赖存在时生效
 @ConditionalOnProperty(prefix = "ratelimit", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -148,41 +142,37 @@ public class RateLimitAutoConfiguration {
         return new RateLimitService(props.getMaxRequests(), props.getWindowSeconds());
     }
 }
-`
-
+```
 ### 3.4 注册自动配置
 
-`
+```
 文件：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 内容：
 com.example.ratelimit.RateLimitAutoConfiguration
-`
-
+```
 ### 3.5 使用方只需引入依赖
 
-`yaml
+```yaml
 # application.yml（可选，有默认值）
 ratelimit:
   max-requests: 200
   window-seconds: 1
   enabled: true
-`
-
-`java
+```
+```java
 @Service
 public class ApiService {
     @Autowired
     private RateLimitService rateLimitService;  // 自动注入，无需任何额外配置
 }
-`
-
+```
 ---
 
 ## 四、调试自动装配
 
 当自动配置不生效时：
 
-`ash
+```bash
 # 启动时加参数，查看所有自动配置的生效/未生效原因
 java -jar app.jar --debug
 
@@ -190,11 +180,10 @@ java -jar app.jar --debug
 logging:
   level:
     org.springframework.boot.autoconfigure: DEBUG
-`
-
+```
 输出示例：
 
-`
+```
 ============================
 CONDITIONS EVALUATION REPORT
 ============================
@@ -208,15 +197,14 @@ Negative matches:
    MongoAutoConfiguration:
       Did not match:
          - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient'
-`
-
+```
 ---
 
 ## 五、常见坑点
 
 ### 坑 1：自定义 Bean 没有覆盖自动配置
 
-`java
+```java
 // ❌ 没加 @Primary 或 @ConditionalOnMissingBean，与自动配置的 Bean 产生冲突
 @Bean
 public RedisTemplate<String, Object> redisTemplate() { ... }
@@ -225,11 +213,10 @@ public RedisTemplate<String, Object> redisTemplate() { ... }
 @Bean
 @Primary
 public RedisTemplate<String, Object> redisTemplate() { ... }
-`
-
+```
 ### 坑 2：@ConfigurationProperties 未绑定
 
-`java
+```java
 // ❌ 忘记加 @EnableConfigurationProperties 或 @Component
 @ConfigurationProperties(prefix = "myapp")
 public class MyProperties {
@@ -239,8 +226,7 @@ public class MyProperties {
 // ✅ 方式一：在 @SpringBootApplication 类上加 @EnableConfigurationProperties
 // ✅ 方式二：在 Properties 类上加 @Component
 // ✅ 方式三：在 AutoConfiguration 类上加 @EnableConfigurationProperties(MyProperties.class)
-`
-
+```
 ---
 
 ## 六、总结与延伸

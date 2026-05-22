@@ -27,7 +27,7 @@ ew T() | ❌ 编译错误 | ✅ 合法 |
 
 编译器在生成字节码时，将泛型参数**替换为其上界**（无上界则替换为 Object）：
 
-`java
+```java
 // 编译前的源码
 public class Box<T> {
     private T value;
@@ -41,11 +41,10 @@ public class Box {
     public Object get() { return value; }
     public void set(Object value) { this.value = value; }
 }
-`
-
+```
 有上界时：
 
-`java
+```java
 // 源码
 public class NumberBox<T extends Number> {
     public double doubleValue(T n) { return n.doubleValue(); }
@@ -55,32 +54,29 @@ public class NumberBox<T extends Number> {
 public class NumberBox {
     public double doubleValue(Number n) { return n.doubleValue(); }  // T → Number（上界）
 }
-`
-
+```
 **编译器自动插入强转**：
 
-`java
+```java
 Box<String> box = new Box<>();
 box.set("hello");
 String s = box.get();  // 编译器在 get() 调用处自动插入 checkcast java.lang.String
-`
-
+```
 ---
 
 ## 三、擦除引发的 5 类问题
 
 ### 3.1 无法在运行时获取泛型类型
 
-`java
+```java
 List<String> list = new ArrayList<>();
 System.out.println(list.getClass());           // class java.util.ArrayList（无 String 信息）
 System.out.println(list instanceof List<String>); // ❌ 编译错误
 System.out.println(list instanceof List<?>);      // ✅ 只能用通配符
-`
-
+```
 ### 3.2 无法直接创建泛型类型实例
 
-`java
+```java
 public <T> T create() {
     return new T();  // ❌ 编译错误：Cannot instantiate type T
 }
@@ -89,11 +85,10 @@ public <T> T create() {
 public <T> T create(Class<T> clazz) throws Exception {
     return clazz.getDeclaredConstructor().newInstance();
 }
-`
-
+```
 ### 3.3 泛型数组不被允许
 
-`java
+```java
 List<String>[] arr = new List<String>[10];  // ❌ 编译错误：Generic array creation
 
 // ✅ 用通配符
@@ -101,26 +96,23 @@ List<?>[] arr = new List<?>[10];
 
 // ✅ 用 List<List<String>>
 List<List<String>> lists = new ArrayList<>();
-`
-
+```
 ### 3.4 静态上下文中不能使用类型参数
 
-`java
+```java
 public class Singleton<T> {
     private static T instance;  // ❌ 静态字段不能用类型参数
     public static T getInstance() { return instance; }  // ❌
 }
-`
-
+```
 ### 3.5 重载方法擦除后冲突
 
-`java
+```java
 public class Processor {
     public void process(List<String> list) {}  // ❌ 擦除后与下面方法签名相同
     public void process(List<Integer> list) {} // ❌ 编译错误：erasure of method... is the same
 }
-`
-
+```
 ---
 
 ## 四、绕过擦除：保留运行时类型信息
@@ -129,7 +121,7 @@ public class Processor {
 
 Jackson、Gson、Spring RestTemplate 都用这个模式解决泛型反序列化：
 
-`java
+```java
 // Gson TypeToken
 Type type = new TypeToken<List<User>>() {}.getType();
 List<User> users = gson.fromJson(json, type);
@@ -142,13 +134,12 @@ ResponseEntity<List<User>> response = restTemplate.exchange(
     url, HttpMethod.GET, null,
     new ParameterizedTypeReference<List<User>>() {}
 );
-`
-
+```
 **原理**：匿名子类的字节码中保留了泛型签名，通过 getClass().getGenericSuperclass() 可以在运行时获取。
 
 ### 4.2 Super Type Token 原理
 
-`java
+```java
 // 为什么匿名类能保留泛型信息？
 abstract class TypeRef<T> {
     // 通过 getGenericSuperclass() 获取父类的泛型参数
@@ -160,15 +151,14 @@ abstract class TypeRef<T> {
 
 TypeRef<List<String>> ref = new TypeRef<List<String>>() {};
 System.out.println(ref.getType()); // java.util.List<java.lang.String>
-`
-
+```
 匿名类的 class 文件中，Signature 属性保存了 TypeRef<List<String>> 的完整类型信息，不受擦除影响。
 
 ---
 
 ## 五、擦除与通配符的协同使用
 
-`java
+```java
 // ? extends T（协变，只读）
 List<? extends Number> nums = new ArrayList<Integer>();
 Number n = nums.get(0);  // ✅ 读取安全
@@ -184,15 +174,14 @@ Integer i = nums.get(0); // ❌ 读取不安全（只能拿到 Object）
 public static <T> void copy(List<? extends T> src, List<? super T> dst) {
     for (T item : src) dst.add(item);
 }
-`
-
+```
 ---
 
 ## 六、常见坑点与最佳实践
 
 ### 坑 1：泛型方法返回类型依赖调用方推断
 
-`java
+```java
 public static <T> T firstOrNull(List<T> list) {
     return list.isEmpty() ? null : list.get(0);
 }
@@ -202,11 +191,10 @@ Object o = firstOrNull(stringList);  // 编译器推断 T=Object
 
 // ✅ 确保调用时有正确的上下文
 String s = firstOrNull(stringList);  // 编译器推断 T=String，插入强转
-`
-
+```
 ### 坑 2：泛型类不能直接做 instanceof
 
-`java
+```java
 if (obj instanceof T) { }    // ❌ 编译错误
 if (obj instanceof List) { } // ✅ 原始类型可以 instanceof
 
@@ -214,19 +202,17 @@ if (obj instanceof List) { } // ✅ 原始类型可以 instanceof
 public <T> boolean isInstance(Object obj, Class<T> clazz) {
     return clazz.isInstance(obj);
 }
-`
-
+```
 ### 坑 3：@SuppressWarnings("unchecked") 的合理使用
 
-`java
+```java
 // ❌ 不加注解让警告乱飞，降低代码可读性
 List<String> list = (List<String>) getGenericList();
 
 // ✅ 确认类型安全后，局部压制警告并加注释说明原因
 @SuppressWarnings("unchecked")
 List<String> list = (List<String>) getGenericList(); // 确保 getGenericList 只返回 String 元素
-`
-
+```
 ---
 
 ## 七、总结与延伸

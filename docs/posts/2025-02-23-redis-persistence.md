@@ -22,14 +22,13 @@ Redis 提供两种持久化机制，可以单独使用，也可以同时开启�
 
 RDB 是将某一时刻的内存数据完整**快照**写入磁盘文件（.rdb）：
 
-`
+```
 Redis 进程
     ↓ fork() 子进程（写时复制 COW）
 子进程：将内存数据序列化写入 temp.rdb
 主进程：继续处理请求（不阻塞）
 子进程完成：原子替换 dump.rdb
-`
-
+```
 **写时复制（COW）**：fork 之后父子进程共享内存页，只有在父进程修改某页数据时，才复制该页给子进程，子进程始终写的是 fork 时的快照。
 
 ### 触发方式
@@ -46,15 +45,13 @@ save 60 10000
 # 手动触发
 BGSAVE   # 后台异步保存（推荐）
 SAVE     # 同步保存（阻塞主线程！生产禁止）
-`
-
+```
 ### RDB 文件结构
 
-`
+```
 REDIS  0011  FA ... FC ... FE db0 ... FF checksum
  标识  版本  辅助字段  过期时间  DB索引  KV数据  校验和
-`
-
+```
 RDB 是二进制格式，文件小，加载速度快。
 
 ---
@@ -65,7 +62,7 @@ RDB 是二进制格式，文件小，加载速度快。
 
 AOF 将每条**写命令**追加到日志文件，重启时通过重放日志恢复数据：
 
-`
+```
 客户端 SET key value
     ↓
 命令写入 AOF 缓冲区（aof_buf）
@@ -73,8 +70,7 @@ AOF 将每条**写命令**追加到日志文件，重启时通过重放日志恢
 appendonly.aof
     ↓ 重启时
 顺序重放所有命令 → 恢复内存数据
-`
-
+```
 ### fsync 策略（数据安全 vs 性能的权衡）
 
 `conf
@@ -82,13 +78,12 @@ appendonly.aof
 appendfsync always       # 每条命令都 fsync（最安全，性能最差）
 appendfsync everysec     # 每秒 fsync（推荐，最多丢 1 秒数据）
 appendfsync no           # 由 OS 决定（最快，可能丢较多数据）
-`
-
+```
 ### AOF 重写（防止文件无限增长）
 
 随着时间推移，AOF 文件越来越大（同一个 key 可能被修改了 1000 次）。AOF 重写通过遍历内存数据，生成最小的等效命令集：
 
-`
+```
 原始 AOF（1000行）：
 SET counter 1
 INCR counter
@@ -97,8 +92,7 @@ INCR counter
 
 重写后 AOF（1行）：
 SET counter 1000
-`
-
+```
 `conf
 # 自动触发 AOF 重写的条件
 auto-aof-rewrite-percentage 100   # AOF 文件大小比上次重写后增长了 100%
@@ -106,19 +100,17 @@ auto-aof-rewrite-min-size 64mb    # 且 AOF 文件至少 64MB
 
 # 手动触发
 BGREWRITEAOF
-`
-
+```
 ---
 
 ## 四、混合持久化（Redis 4.0+，推荐）
 
 结合 RDB 和 AOF 的优点：AOF 重写时，将 RDB 快照内容写入 AOF 文件头，后续增量操作以 AOF 格式追加：
 
-`
+```
 appendonly.aof 文件结构：
 [RDB 格式快照数据][AOF 格式增量命令]
-`
-
+```
 **优势**：
 - 重启时先加载 RDB 快照（快），再重放后续 AOF 增量命令（少）
 - 兼顾了 RDB 的快速加载和 AOF 的数据完整性
@@ -126,8 +118,7 @@ appendonly.aof 文件结构：
 `conf
 # 开启混合持久化（需要 AOF 同时开启）
 aof-use-rdb-preamble yes
-`
-
+```
 ---
 
 ## 五、RDB vs AOF 对比
@@ -150,8 +141,7 @@ aof-use-rdb-preamble yes
 save ""                     # 禁用 RDB 自动保存
 appendonly no               # 禁用 AOF
 # 重启后缓存冷启动，从 DB 重新加载
-`
-
+```
 ### 关键数据存储（不允许数据丢失）
 
 `conf
@@ -161,30 +151,27 @@ appendfsync everysec        # 每秒 fsync，平衡性能和安全
 aof-use-rdb-preamble yes    # 开启混合持久化
 auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
-`
-
+```
 ### 灾备场景（保留 RDB 备份）
 
 `conf
 save 3600 1                 # 每小时至少 1 次写，触发 RDB 备份
 appendonly yes
 aof-use-rdb-preamble yes
-`
-
+```
 ---
 
 ## 七、常见坑点与最佳实践
 
 ### 坑 1：SAVE 命令阻塞主线程
 
-`ash
+```bash
 # ❌ SAVE 是同步操作，执行期间 Redis 不响应任何请求
 redis-cli SAVE
 
 # ✅ 使用 BGSAVE（后台异步）
 redis-cli BGSAVE
-`
-
+```
 ### 坑 2：fork 时内存不足导致 BGSAVE 失败
 
 `conf
@@ -192,15 +179,13 @@ redis-cli BGSAVE
 # 当 Redis 内存 > 物理内存 / 2 时，BGSAVE 可能失败
 # ✅ 修改系统参数
 vm.overcommit_memory = 1  # /etc/sysctl.conf
-`
-
+```
 ### 坑 3：AOF 文件损坏导致 Redis 无法启动
 
-`ash
+```bash
 # ✅ 使用修复工具（会截断到最后一个完整命令）
 redis-check-aof --fix appendonly.aof
-`
-
+```
 ---
 
 ## 八、总结与延伸

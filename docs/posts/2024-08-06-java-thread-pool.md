@@ -8,8 +8,7 @@
 
 ## 一、背景：为什么需要线程池
 
-直接 
-ew Thread() 有三个问题：
+直接 new Thread() 有三个问题：
 1. **创建/销毁开销大**：线程是操作系统资源，每次 new Thread 都会创建内核线程，开销约 1ms
 2. **数量不可控**：高并发下可能瞬间创建数千线程，导致 OOM 或 CPU 上下文切换打满
 3. **缺乏统一管理**：无法监控、限流、排队
@@ -20,7 +19,7 @@ ew Thread() 有三个问题：
 
 ## 二、ThreadPoolExecutor 七大核心参数
 
-`java
+```java
 public ThreadPoolExecutor(
     int corePoolSize,                       // ① 核心线程数
     int maximumPoolSize,                    // ② 最大线程数
@@ -30,11 +29,10 @@ public ThreadPoolExecutor(
     ThreadFactory threadFactory,            // ⑥ 线程工厂（命名/优先级）
     RejectedExecutionHandler handler        // ⑦ 拒绝策略
 )
-`
-
+```
 ### 任务提交完整流程
 
-`
+```
 提交任务 execute(task)
    │
    ├─① 当前线程数 < corePoolSize
@@ -47,8 +45,7 @@ public ThreadPoolExecutor(
    │               └─ 当前线程数 >= maximumPoolSize ──→ 触发 RejectedExecutionHandler
    │
    └─ 非核心线程空闲 keepAliveTime 后自动回收
-`
-
+```
 > 关键认知：**先填队列，再扩线程**。maximumPoolSize 的扩展只在队列满了之后才触发，而不是线程数一超过 corePoolSize 就立刻扩展。
 
 ### 参数详解与配置建议
@@ -57,9 +54,9 @@ public ThreadPoolExecutor(
 |------|------|---------|
 | corePoolSize | 常驻核心线程数，即使空闲也不销毁 | CPU 密集型：N+1（N为CPU核数）；IO 密集型：2N |
 | maximumPoolSize | 线程数上限（含核心线程） | 结合业务峰值和队列容量设定，通常不超过 2×corePoolSize |
-| keepAliveTime | 非核心线程空闲存活时长 | 一般 30~60s；设置 llowCoreThreadTimeOut(true) 后核心线程也会超时 |
+| keepAliveTime | 非核心线程空闲存活时长 | 一般 30~60s；设置 allowCoreThreadTimeOut(true) 后核心线程也会超时 |
 | workQueue | 缓冲未执行的任务 | 见下节详述 |
-| 	hreadFactory | 自定义线程名、守护线程、优先级 | **生产必须自定义，便于 dump 排查** |
+| threadFactory | 自定义线程名、守护线程、优先级 | **生产必须自定义，便于 dump 排查** |
 | handler | 队列满且线程数达上限时的处理 | 见下节详述 |
 
 ---
@@ -70,8 +67,7 @@ public ThreadPoolExecutor(
 |---------|------|------|---------|
 | LinkedBlockingQueue | 默认无界 (Integer.MAX_VALUE) | 任务永远入队，maximumPoolSize 形同虚设 | **慎用**，可能 OOM |
 | ArrayBlockingQueue | 有界（构造时指定）| 超限触发拒绝策略，能感知背压 | **推荐**，生产首选 |
-| SynchronousQueue | 0（不缓存）| 每个提交必须有线程立即接收 | 
-ewCachedThreadPool |
+| SynchronousQueue | 0（不缓存）| 每个提交必须有线程立即接收 | newCachedThreadPool |
 | LinkedTransferQueue | 无界，但优先直接传递 | 吞吐高于 LinkedBlockingQueue | 高吞吐场景 |
 | PriorityBlockingQueue | 无界，按优先级排序 | 支持任务优先级 | 任务有优先级区分 |
 | DelayQueue | 无界，到期才取出 | 支持延迟执行 | 定时任务、缓存过期 |
@@ -82,7 +78,7 @@ ewCachedThreadPool |
 
 ## 四、四种内置拒绝策略
 
-`java
+```java
 // ① AbortPolicy（默认）：抛出 RejectedExecutionException
 // 适合：对任务丢失零容忍，希望快速暴露问题
 executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
@@ -98,11 +94,10 @@ executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
 // ④ DiscardOldestPolicy：丢弃队列头（最老）的任务，重试提交当前任务
 // 适合：时效性高的任务，旧任务无意义时
 executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
-`
-
+```
 **生产推荐：自定义拒绝策略**，记录日志 + 告警，不静默丢弃：
 
-`java
+```java
 executor.setRejectedExecutionHandler((task, pool) -> {
     // 记录拒绝日志，触发告警
     log.error("Task rejected: pool={}, queueSize={}, task={}",
@@ -110,13 +105,12 @@ executor.setRejectedExecutionHandler((task, pool) -> {
     // 可选：降级处理，如写入 DB 或 MQ 异步处理
     fallbackHandler.handle(task);
 });
-`
-
+```
 ---
 
 ## 五、实战：标准线程池创建模板
 
-`java
+```java
 /**
  * 生产环境线程池创建标准模板
  * 有界队列 + 自定义线程名 + 自定义拒绝策略
@@ -160,11 +154,10 @@ public class ThreadPoolFactory {
         }
     }
 }
-`
-
+```
 ### 监控线程池运行状态
 
-`java
+```java
 // Spring 环境：注册为 MBean 或定时打印
 ScheduledExecutorService monitor = Executors.newSingleThreadScheduledExecutor();
 monitor.scheduleAtFixedRate(() -> {
@@ -175,25 +168,18 @@ monitor.scheduleAtFixedRate(() -> {
             executor.getCompletedTaskCount(),
             executor.getLargestPoolSize());
 }, 0, 30, TimeUnit.SECONDS);
-`
-
+```
 ---
 
 ## 六、Executors 工厂方法 vs 手动创建
 
 | 工厂方法 | 实际配置 | 问题 |
 |---------|---------|------|
-| 
-ewFixedThreadPool(n) | 核心=最大=n，无界队列 | 队列无限堆积，OOM 风险 |
-| 
-ewCachedThreadPool() | 核心=0，最大=Integer.MAX_VALUE | 线程无限创建，OOM 风险 |
-| 
-ewSingleThreadExecutor() | 核心=最大=1，无界队列 | 同 
-ewFixedThreadPool |
-| 
-ewScheduledThreadPool(n) | 最大=Integer.MAX_VALUE | 任务堆积风险 |
-| **手动 
-ew ThreadPoolExecutor** | 完全可控 | **生产标准做法** |
+| newFixedThreadPool(n) | 核心=最大=n，无界队列 | 队列无限堆积，OOM 风险 |
+| newCachedThreadPool() | 核心=0，最大=Integer.MAX_VALUE | 线程无限创建，OOM 风险 |
+| newSingleThreadExecutor() | 核心=最大=1，无界队列 | 同 newFixedThreadPool |
+| newScheduledThreadPool(n) | 最大=Integer.MAX_VALUE | 任务堆积风险 |
+| **手动 new ThreadPoolExecutor** | 完全可控 | **生产标准做法** |
 
 > **阿里巴巴 Java 开发手册**明确规定：线程池不允许使用 Executors 创建。
 
@@ -203,7 +189,7 @@ ew ThreadPoolExecutor** | 完全可控 | **生产标准做法** |
 
 ### 坑 1：线程数设置错误导致资源浪费或不足
 
-`java
+```java
 // ❌ IO 密集型任务（数据库、HTTP 调用）只用 CPU 核数
 int cpuCores = Runtime.getRuntime().availableProcessors();
 new ThreadPoolExecutor(cpuCores, ...);  // 大量线程阻塞在 IO 等待，CPU 利用率不足
@@ -212,11 +198,10 @@ new ThreadPoolExecutor(cpuCores, ...);  // 大量线程阻塞在 IO 等待，CPU
 // 线程数 = CPU 核数 × (1 + 等待时间/计算时间)
 // 例如 IO 等待 9ms，计算 1ms → 线程数 = N × (1+9) = 10N
 new ThreadPoolExecutor(cpuCores * 10, ...);
-`
-
+```
 ### 坑 2：将无界队列与 maximumPoolSize 搭配
 
-`java
+```java
 // ❌ maximumPoolSize 永远不会生效，因为无界队列不会触发扩线程
 new ThreadPoolExecutor(4, 20, 60, SECONDS,
         new LinkedBlockingQueue<>());  // 永远只有4个线程，队列无限堆积
@@ -224,11 +209,10 @@ new ThreadPoolExecutor(4, 20, 60, SECONDS,
 // ✅ 有界队列才能触发最大线程数扩展
 new ThreadPoolExecutor(4, 20, 60, SECONDS,
         new ArrayBlockingQueue<>(100));
-`
-
+```
 ### 坑 3：忘记处理线程异常
 
-`java
+```java
 // ❌ 线程内异常被静默吞掉，任务失败无感知
 executor.execute(() -> {
     processOrder(orderId);  // 抛出异常，但 execute() 不会抛给调用方
@@ -243,11 +227,10 @@ try {
 }
 
 // ✅ 方案二：在 ThreadFactory 中设置 UncaughtExceptionHandler（见上方代码）
-`
-
+```
 ### 坑 4：线程池没有优雅关闭
 
-`java
+```java
 // ❌ 直接 shutdownNow()，队列中的任务全部丢弃
 executor.shutdownNow();
 
@@ -261,19 +244,17 @@ try {
     executor.shutdownNow();
     Thread.currentThread().interrupt();
 }
-`
-
+```
 ---
 
 ## 八、总结与延伸
 
 **核心要点**：
 - 线程池七大参数中，workQueue 的选择最关键：有界队列才能感知背压，防止 OOM
-- Executors 工厂方法隐藏了配置风险，生产环境应手动 
-ew ThreadPoolExecutor
+- Executors 工厂方法隐藏了配置风险，生产环境应手动 new ThreadPoolExecutor
 - 自定义 ThreadFactory（线程命名）和拒绝策略（日志告警）是生产必备
 - IO 密集型任务的线程数公式：N × (1 + 等待时间/计算时间)
-- 优雅关闭需要 shutdown() + waitTermination()，而不是直接 shutdownNow()
+- 优雅关闭需要 shutdown() + awaitTermination()，而不是直接 shutdownNow()
 
 **延伸阅读方向**：
 - ForkJoinPool：分治并行框架，parallelStream 和 CompletableFuture 的默认池

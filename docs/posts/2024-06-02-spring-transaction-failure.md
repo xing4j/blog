@@ -10,7 +10,7 @@
 
 Spring 声明式事务基于 **AOP 动态代理**实现。当你调用一个带 @Transactional 的方法时，实际上是在调用代理对象的方法：
 
-`
+```
 调用方 → 代理对象（TransactionInterceptor）→ 目标对象.method()
                  ↓
          开启事务（begin transaction）
@@ -18,8 +18,7 @@ Spring 声明式事务基于 **AOP 动态代理**实现。当你调用一个带 
          执行业务方法
                  ↓
          提交/回滚事务（commit/rollback）
-`
-
+```
 **所有失效场景都可以从这张图找到根源**：要么代理没被调用，要么代理拦截失败，要么事务配置不匹配异常类型。
 
 ---
@@ -28,7 +27,7 @@ Spring 声明式事务基于 **AOP 动态代理**实现。当你调用一个带 
 
 ### 场景 1：同类内部方法调用（最常见）
 
-`java
+```java
 @Service
 public class OrderService {
 
@@ -45,11 +44,10 @@ public class OrderService {
         // 如果这里抛异常，不会在独立事务中回滚，会连带 placeOrder 一起回滚
     }
 }
-`
-
+```
 **修复方案 A**：通过 Spring 容器获取代理对象再调用：
 
-`java
+```java
 @Service
 public class OrderService {
     @Autowired
@@ -62,13 +60,12 @@ public class OrderService {
         context.getBean(OrderService.class).updateStock(order.getItemId());
     }
 }
-`
-
+```
 **修复方案 B（推荐）**：将 updateStock 拆分到另一个 Service，通过依赖注入调用。
 
 ### 场景 2：方法访问修饰符不是 public
 
-`java
+```java
 @Service
 public class UserService {
     // ❌ protected/private/package-private 方法上的 @Transactional 无效
@@ -77,13 +74,12 @@ public class UserService {
         userDao.save(user);
     }
 }
-`
-
+```
 Spring AOP 基于接口代理（JDK）或子类代理（CGLIB），两者都只能拦截 public 方法。
 
 ### 场景 3：异常类型不匹配
 
-`java
+```java
 @Service
 public class PayService {
     // ❌ 默认只回滚 RuntimeException 和 Error，捕获到的受检异常不会回滚
@@ -102,13 +98,12 @@ public class PayService {
         payDao.deduct(orderId);  // 任何异常都会触发回滚
     }
 }
-`
-
+```
 **最佳实践**：生产代码统一使用 @Transactional(rollbackFor = Exception.class)。
 
 ### 场景 4：异常被 catch 吞掉
 
-`java
+```java
 @Service
 public class InventoryService {
     // ❌ 异常被内部捕获，事务感知不到异常，正常提交
@@ -133,11 +128,10 @@ public class InventoryService {
         }
     }
 }
-`
-
+```
 ### 场景 5：Bean 未被 Spring 管理
 
-`java
+```java
 // ❌ 不是 Spring Bean，@Transactional 无效（AOP 代理不会注入）
 public class LegacyOrderService {
     @Transactional
@@ -147,11 +141,10 @@ public class LegacyOrderService {
 // 手动 new 出来的对象，@Transactional 不生效
 LegacyOrderService service = new LegacyOrderService();
 service.create(order);
-`
-
+```
 ### 场景 6：多线程调用（事务不跨线程）
 
-`java
+```java
 @Service
 public class BatchService {
     @Transactional
@@ -162,23 +155,21 @@ public class BatchService {
         });
     }
 }
-`
-
+```
 Spring 事务通过 ThreadLocal 绑定到当前线程，跨线程则事务上下文丢失。多线程批处理场景需要每个线程独立管理事务。
 
 ### 场景 7：数据库引擎不支持事务
 
-`sql
+```sql
 -- ❌ MyISAM 不支持事务，@Transactional 对其无效
 CREATE TABLE orders (id INT) ENGINE=MyISAM;
 
 -- ✅ 使用 InnoDB
 CREATE TABLE orders (id INT) ENGINE=InnoDB;
-`
-
+```
 ### 场景 8：事务传播属性配置错误
 
-`java
+```java
 @Service
 public class AService {
     @Transactional
@@ -196,8 +187,7 @@ public class BService {
         dao.update();
     }
 }
-`
-
+```
 ---
 
 ## 三、事务传播行为速查表

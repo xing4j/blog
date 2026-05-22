@@ -2,7 +2,7 @@
 
 <div class="post-meta">📅 2024-05-17 &nbsp;·&nbsp; 🏷️ <span class="tag">Java</span> <span class="tag">并发</span></div>
 
-线上某个状态控制 Bug 困扰了团队三天：一个线程写入了 unning = false，另一个线程的循环却永远不退出。加了日志之后能复现，不加日志就消失——典型的可见性问题。理解这类 Bug，必须从 Java 内存模型（JMM）的根源讲起。
+线上某个状态控制 Bug 困扰了团队三天：一个线程写入了 running = false，另一个线程的循环却永远不退出。加了日志之后能复现，不加日志就消失——典型的可见性问题。理解这类 Bug，必须从 Java 内存模型（JMM）的根源讲起。
 
 ---
 
@@ -26,7 +26,7 @@ JMM 不是 Java 特有的问题——C++、Go 也有类似的内存模型规范�
 
 JMM 规定：所有变量存储在**主内存**，每个线程拥有独立的**工作内存**（对应 CPU 寄存器/缓存的抽象）。线程对变量的所有操作必须在工作内存中进行，不能直接操作主内存。
 
-`
+```
   Thread A                        Thread B
 ┌─────────────────┐            ┌─────────────────┐
 │    工作内存      │            │    工作内存      │
@@ -42,8 +42,7 @@ JMM 规定：所有变量存储在**主内存**，每个线程拥有独立的**�
 Thread B 写入 flag=true 到主内存，
 但 Thread A 的工作内存中仍是旧值 false，
 除非有机制强制刷新，否则 Thread A 永远看不到更新。
-`
-
+```
 ### happens-before：可见性的正式定义
 
 JMM 用 **happens-before（hb）** 关系来定义"谁能看到谁的修改"。若 A hb B，则 A 的所有操作结果对 B 可见。
@@ -63,11 +62,11 @@ JMM 用 **happens-before（hb）** 关系来定义"谁能看到谁的修改"。�
 
 ## 三、volatile 语义与底层实现
 
-olatile 提供两个保证：**可见性**和**有序性**（禁止重排序），但**不保证原子性**。
+volatile 提供两个保证：**可见性**和**有序性**（禁止重排序），但**不保证原子性**。
 
 ### 可见性实现
 
-写 olatile 变量时，JVM 插入 store 操作，将工作内存的值**立即刷新到主内存**；读 olatile 变量时，插入 load 操作，强制从主内存**重新加载**，跳过 CPU 缓存。
+写 volatile 变量时，JVM 插入 store 操作，将工作内存的值**立即刷新到主内存**；读 volatile 变量时，插入 load 操作，强制从主内存**重新加载**，跳过 CPU 缓存。
 
 ### 禁止重排序：内存屏障
 
@@ -82,7 +81,7 @@ JMM 通过四种**内存屏障**指令（Memory Barrier）实现有序性：
 
 JMM 规定 volatile 读写插入屏障的位置：
 
-`
+```
 volatile 写：
   [前] StoreStore 屏障  ← 禁止上面的写与 volatile 写重排
   volatile 写操作
@@ -92,8 +91,7 @@ volatile 读：
   volatile 读操作
   [后] LoadLoad 屏障    ← 禁止 volatile 读与后面的读重排
   [后] LoadStore 屏障   ← 禁止 volatile 读与后面的写重排
-`
-
+```
 x86 架构上，StoreLoad 屏障对应 MFENCE 指令；ARM 上对应 DMB 指令。
 
 ---
@@ -102,7 +100,7 @@ x86 架构上，StoreLoad 屏障对应 MFENCE 指令；ARM 上对应 DMB 指令�
 
 ### 场景一：状态标志（volatile 最典型用法）
 
-`java
+```java
 public class Worker implements Runnable {
     // 用 volatile 保证可见性，一写多读场景
     private volatile boolean stopped = false;
@@ -129,8 +127,7 @@ t.start();
 
 Thread.sleep(1000);
 worker.stop();  // 保证 t 线程能看到修改，循环正常退出
-`
-
+```
 ### 场景二：双重检查锁（DCL）单例
 
 这是 volatile 最著名的应用场景之一。instance = new Singleton() 在字节码层面是三步：
@@ -140,7 +137,7 @@ worker.stop();  // 保证 t 线程能看到修改，循环正常退出
 
 CPU 可能将步骤 2 和 3 重排（先赋值再初始化），导致其他线程拿到一个**未初始化完成的对象引用**。
 
-`java
+```java
 public class Singleton {
     // ❌ 不加 volatile：步骤3和2可能重排，其他线程看到非null但未初始化的对象
     // private static Singleton instance;
@@ -161,13 +158,12 @@ public class Singleton {
         return instance;
     }
 }
-`
-
+```
 ---
 
 ## 五、volatile vs synchronized vs Atomic
 
-| 维度 | olatile | synchronized | AtomicXxx |
+| 维度 | volatile | synchronized | AtomicXxx |
 |------|-----------|----------------|-------------|
 | 可见性 | ✅ | ✅ | ✅ |
 | 有序性 | ✅ | ✅ | ✅ |
@@ -177,7 +173,7 @@ public class Singleton {
 | 性能 | 最轻量 | 中等（JDK6+ 优化） | 高并发下优于 synchronized |
 
 **选择原则**：
-- 变量写操作**不依赖当前值**（非 i++），且变量不与其他变量组成不变约束 → olatile
+- 变量写操作**不依赖当前值**（非 i++），且变量不与其他变量组成不变约束 → volatile
 - 需要原子性的**复合操作** → synchronized 或 Lock
 - 单变量的**原子累加/更新** → AtomicInteger 等（底层 CAS，无锁）
 
@@ -187,7 +183,7 @@ public class Singleton {
 
 ### 坑 1：volatile 不能保证复合操作的原子性
 
-`java
+```java
 private volatile int count = 0;
 
 // ❌ 非原子！count++ 等于 read → modify → write，三步之间可被抢占
@@ -200,15 +196,14 @@ private final AtomicInteger count = new AtomicInteger(0);
 public void increment() {
     count.incrementAndGet();
 }
-`
-
+```
 ### 坑 2：long/double 的非原子读写
 
-JMM 允许将 64 位的 long/double 的读写分为两次 32 位操作，在 32 位 JVM 上可能读到"撕裂"的值。解决方案：加 olatile 或改用 AtomicLong。
+JMM 允许将 64 位的 long/double 的读写分为两次 32 位操作，在 32 位 JVM 上可能读到"撕裂"的值。解决方案：加 volatile 或改用 AtomicLong。
 
 ### 坑 3：volatile 数组 ≠ 数组元素 volatile
 
-`java
+```java
 volatile int[] arr = new int[10];
 arr[0] = 1;  // ❌ 数组引用 arr 是 volatile 的，但数组元素不是！
              //    其他线程不一定能看到 arr[0] 的修改
@@ -216,11 +211,10 @@ arr[0] = 1;  // ❌ 数组引用 arr 是 volatile 的，但数组元素不是！
 // ✅ 使用 AtomicIntegerArray
 AtomicIntegerArray arr = new AtomicIntegerArray(10);
 arr.set(0, 1);
-`
-
+```
 ### 坑 4：误用 volatile 替代锁
 
-`java
+```java
 // ❌ 两个 volatile 变量的组合操作没有原子性
 private volatile boolean hasData = false;
 private volatile String data = null;
@@ -231,8 +225,7 @@ hasData = true;        // 步骤2
 
 // 消费者检查 hasData 时 data 可能还是 null（步骤1步骤2之间被抢占）
 // 此场景需要 synchronized 保证两步操作的整体原子性
-`
-
+```
 ---
 
 ## 七、总结与延伸
@@ -240,9 +233,9 @@ hasData = true;        // 步骤2
 **核心要点**：
 - JMM 通过主内存/工作内存模型屏蔽了底层 CPU 缓存差异，定义了可见性、原子性、有序性三个保证目标
 - happens-before 是 JMM 的核心机制，定义了操作之间的可见性保证关系
-- olatile 通过内存屏障实现可见性和有序性，但不保证原子性
-- DCL 单例必须加 olatile，防止未初始化对象引用被其他线程读到
-- 复合操作的原子性需要 synchronized、Lock 或 Atomic 系列，不能用 olatile
+- volatile 通过内存屏障实现可见性和有序性，但不保证原子性
+- DCL 单例必须加 volatile，防止未初始化对象引用被其他线程读到
+- 复合操作的原子性需要 synchronized、Lock 或 Atomic 系列，不能用 volatile
 
 **延伸阅读方向**：
 - synchronized 的锁升级机制（偏向锁→轻量锁→重量锁）：理解 JDK 6+ 的锁优化

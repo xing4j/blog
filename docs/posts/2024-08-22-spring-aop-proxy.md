@@ -10,7 +10,7 @@
 
 面向切面编程（AOP）将**横切关注点**（日志、事务、权限、监控）从业务代码中剥离，以声明式的方式统一处理：
 
-`
+```
 没有 AOP：                     有 AOP：
 ┌──────────────┐              ┌──────────────┐
 │ 业务代码      │              │ 业务代码      │ ← 只关注业务
@@ -19,8 +19,7 @@
 │ + 权限代码   │              ┌───────────────┐
 └──────────────┘              │ 切面（横切）   │ 日志/事务/权限
                               └───────────────┘
-`
-
+```
 Spring AOP 是**运行时代理**，不修改原始字节码，通过动态代理在方法调用前后插入逻辑。
 
 ---
@@ -31,15 +30,14 @@ Spring AOP 是**运行时代理**，不修改原始字节码，通过动态代�
 
 要求目标类**实现接口**，代理对象是接口的实现类：
 
-`
+```
 IUserService（接口）
     ↑                ← 代理对象实现相同接口
 UserService（目标）  ← 被代理的真实对象
     ↑
 UserServiceProxy（JDK代理）
-`
-
-`java
+```
+```java
 // JDK 动态代理原理简化版
 IUserService proxy = (IUserService) Proxy.newProxyInstance(
     UserService.class.getClassLoader(),
@@ -51,19 +49,17 @@ IUserService proxy = (IUserService) Proxy.newProxyInstance(
         return result;
     }
 );
-`
-
+```
 ### CGLIB 代理
 
 通过继承目标类生成子类，不需要接口：
 
-`
+```
 UserService（目标类）
     ↑
 UserServiceDone: spring-bean-lifecycle.mdEnhancerByCGLIB（CGLIB生成的子类）← 代理对象
-`
-
-`java
+```
+```java
 // CGLIB 通过字节码库（ASM）在运行时生成目标类的子类
 // 子类重写所有方法，在方法调用前后插入拦截逻辑
 Enhancer enhancer = new Enhancer();
@@ -75,8 +71,7 @@ enhancer.setCallback((MethodInterceptor) (obj, method, args, proxy) -> {
     return result;
 });
 UserService proxy = (UserService) enhancer.create();
-`
-
+```
 ### Spring 选择策略
 
 | 条件 | 代理方式 |
@@ -90,7 +85,7 @@ UserService proxy = (UserService) enhancer.create();
 
 ## 三、五种通知类型与完整切面示例
 
-`java
+```java
 @Aspect
 @Component
 public class ApiMonitorAspect {
@@ -142,8 +137,7 @@ public class ApiMonitorAspect {
         }
     }
 }
-`
-
+```
 **执行顺序（正常情况）**：@Around(前) → @Before → 目标方法 → @AfterReturning → @After → @Around(后)
 
 **执行顺序（异常情况）**：@Around(前) → @Before → 目标方法抛异常 → @AfterThrowing → @After
@@ -152,7 +146,7 @@ public class ApiMonitorAspect {
 
 ## 四、切入点表达式速查
 
-`java
+```java
 // execution 语法：execution(修饰符 返回类型 包名.类名.方法名(参数))
 execution(* com.example.service.*.*(..))          // service 下所有类的所有方法
 execution(public * *(..))                          // 所有 public 方法
@@ -168,15 +162,14 @@ execution(* *(String, ..))                         // 第一个参数是 String 
 
 // args：匹配特定参数类型的方法
 args(java.lang.String, ..)
-`
-
+```
 ---
 
 ## 五、常见坑点与最佳实践
 
 ### 坑 1：同类内部调用切面不生效
 
-`java
+```java
 @Service
 public class OrderService {
     @Transactional  // 本质是 AOP 切面
@@ -187,20 +180,18 @@ public class OrderService {
 
     public void updateStock() { ... }
 }
-`
-
+```
 ### 坑 2：final 方法/类无法被 CGLIB 代理
 
-`java
+```java
 @Service
 public final class PayService {  // ❌ final 类，CGLIB 无法继承生成子类
     public final void pay() { }  // ❌ final 方法，CGLIB 无法重写
 }
-`
-
+```
 ### 坑 3：@Around 忘记调用 proceed()
 
-`java
+```java
 @Around("controllerMethods()")
 public Object around(ProceedingJoinPoint pjp) throws Throwable {
     log.info("before");
@@ -211,13 +202,12 @@ public Object around(ProceedingJoinPoint pjp) throws Throwable {
     // Object result = pjp.proceed();
     // return result;
 }
-`
-
+```
 ### 坑 4：多切面执行顺序
 
 同一个方法被多个切面拦截时，用 @Order 控制顺序（数字越小优先级越高）：
 
-`java
+```java
 @Aspect
 @Component
 @Order(1)  // 最外层，先进后出
@@ -227,8 +217,7 @@ public class LogAspect { ... }
 @Component
 @Order(2)  // 内层
 public class TransactionAspect { ... }
-`
-
+```
 ---
 
 ## 六、Spring AOP vs AspectJ
@@ -256,4 +245,4 @@ public class TransactionAspect { ... }
 - AspectJ 编译时织入：彻底解决内部调用问题，适合 SDK 级别切面
 - Spring 事务实现：TransactionInterceptor 是最复杂的 AOP 应用
 - ProxyFactory API：编程式创建 AOP 代理，理解代理工厂的工作原理
-- Arthas 	race 命令：生产环境动态追踪方法调用链，AOP 的终极调试工具
+- Arthas rrace 命令：生产环境动态追踪方法调用链，AOP 的终极调试工具

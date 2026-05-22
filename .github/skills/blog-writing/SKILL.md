@@ -61,3 +61,48 @@ Markdown 格式，依次包含：
 7. **总结与延伸** — 核心要点回顾 + 推荐阅读方向
 
 标题层级清晰（## / ###），重点内容适当加粗，代码块注明语言类型。
+
+---
+
+## 写入文件注意事项
+
+### PowerShell 写文件必须用单引号 here-string
+
+**必须使用 `@'...'@`（单引号 here-string），严禁使用 `@"..."@`（双引号 here-string）写入 Markdown 文件内容。**
+
+原因：双引号 here-string 中，反引号 `` ` `` 是 PowerShell 转义字符，会导致以下损坏：
+- ` ```java ` → 变成 `` `java ``（代码块无法渲染）
+- `` `n `` → LF（换行符注入，表格行被分裂）
+- `` `t `` → TAB（单词首字母被替换）
+- `` `a/`b/`f/`r/`v `` → BEL/BS/FF/CR/VT 等不可见字符
+
+```powershell
+# ❌ 错误：双引号 here-string，反引号会被 PS 解释
+$content = @"
+```java
+new Thread(() -> {...})
+```
+"@
+
+# ✅ 正确：单引号 here-string，内容原样写入
+$content = @'
+```java
+new Thread(() -> {...})
+```
+'@
+[System.IO.File]::WriteAllText($path, $content, [System.Text.Encoding]::UTF8)
+```
+
+### 写入后 Markdown 格式自检清单
+
+写入文件后，必须用以下方式验证文件无格式损坏：
+
+```powershell
+$bytes = [System.IO.File]::ReadAllBytes($path)
+# 1. 检查代码围栏（三个反引号）
+$text = [System.Text.Encoding]::UTF8.GetString($bytes)
+if ($text -match '(?m)^\x60[a-z]') { Write-Warning "发现损坏的代码围栏（单个反引号+语言名）" }
+# 2. 检查控制字符（TAB/VT/BEL/BS/FF 等）
+$ctrlChars = $bytes | Where-Object { $_ -lt 0x20 -and $_ -notin @(0x0A, 0x0D) }
+if ($ctrlChars) { Write-Warning "发现控制字符：$($ctrlChars | ForEach-Object { '0x{0:X2}' -f $_ } | Sort-Object -Unique)" }
+```

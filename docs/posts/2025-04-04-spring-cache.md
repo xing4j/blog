@@ -10,7 +10,7 @@
 
 没有 Spring Cache 时，缓存逻辑侵入业务代码：
 
-`java
+```java
 // ❌ 缓存逻辑与业务逻辑耦合
 public User getUser(Long id) {
     String key = "user:" + id;
@@ -20,25 +20,23 @@ public User getUser(Long id) {
     redisTemplate.opsForValue().set(key, user, 30, TimeUnit.MINUTES);
     return user;
 }
-`
-
+```
 Spring Cache 通过 AOP 将缓存逻辑从业务中剥离：
 
-`java
+```java
 // ✅ 业务代码只关注查询
 @Cacheable(value = "users", key = "#id")
 public User getUser(Long id) {
     return userDao.findById(id);
 }
-`
-
+```
 ---
 
 ## 二、四个核心注解
 
 ### @Cacheable：读缓存（有则返回缓存，无则执行方法并缓存结果）
 
-`java
+```java
 @Service
 public class ProductService {
 
@@ -61,21 +59,19 @@ public class ProductService {
         return productDao.findByIdOrNull(id);
     }
 }
-`
-
+```
 ### @CachePut：更新缓存（总是执行方法，并用返回值更新缓存）
 
-`java
+```java
 // 更新操作：更新 DB 的同时更新缓存，保持一致性
 @CachePut(value = "products", key = "#product.id")
 public Product update(Product product) {
     return productDao.update(product);  // 返回值会写入缓存
 }
-`
-
+```
 ### @CacheEvict：删除缓存
 
-`java
+```java
 // 删除单个 key
 @CacheEvict(value = "products", key = "#id")
 public void delete(Long id) {
@@ -91,11 +87,10 @@ public void clearAll() { }
 public void deleteWithPreEvict(Long id) {
     productDao.deleteById(id);
 }
-`
-
+```
 ### @Caching：组合多个缓存操作
 
-`java
+```java
 @Caching(
     evict = {
         @CacheEvict(value = "products", key = "#id"),
@@ -105,13 +100,12 @@ public void deleteWithPreEvict(Long id) {
 public void deleteProduct(Long id) {
     productDao.deleteById(id);
 }
-`
-
+```
 ---
 
 ## 三、与 Redis 集成配置
 
-`java
+```java
 @Configuration
 @EnableCaching
 public class CacheConfig {
@@ -138,8 +132,7 @@ public class CacheConfig {
             .build();
     }
 }
-`
-
+```
 ---
 
 ## 四、对比：Spring Cache vs 手动 Redis 操作
@@ -159,7 +152,7 @@ public class CacheConfig {
 
 ### 坑 1：同类方法内部调用缓存不生效（AOP 代理问题）
 
-`java
+```java
 @Service
 public class ProductService {
     public Product getDetail(Long id) {
@@ -172,11 +165,10 @@ public class ProductService {
         return productDao.findById(id);
     }
 }
-`
-
+```
 ### 坑 2：Key 设计不合理导致缓存污染
 
-`java
+```java
 // ❌ 不同方法用同一个 key 名，互相覆盖
 @Cacheable(value = "data", key = "#id")  // OrderService
 @Cacheable(value = "data", key = "#id")  // UserService（同一 Redis key！）
@@ -184,11 +176,10 @@ public class ProductService {
 // ✅ 用 value 区分不同缓存区域，或加前缀
 @Cacheable(value = "orders", key = "#id")
 @Cacheable(value = "users", key = "#id")
-`
-
+```
 ### 坑 3：缓存穿透（结果为 null 不缓存）
 
-`java
+```java
 // ❌ 查询结果为 null，每次都穿透到 DB
 @Cacheable(value = "products", key = "#id", unless = "#result == null")
 public Product getById(Long id) {
@@ -201,11 +192,10 @@ public Product getById(Long id) {
     Product product = productDao.findById(id);
     return product != null ? product : Product.EMPTY;  // 缓存空对象占位
 }
-`
-
+```
 ### 坑 4：@CachePut 与 @Cacheable Key 不一致
 
-`java
+```java
 // ❌ Key 不一致，更新缓存但读取的是旧 Key 的缓存
 @Cacheable(value = "users", key = "#id")
 public User getUser(Long id) { ... }
@@ -216,8 +206,7 @@ public User updateUser(User user) { ... }
 // ✅ 确保 Key 一致
 @CachePut(value = "users", key = "#user.id")  // ✅ 与 @Cacheable 相同
 public User updateUser(User user) { ... }
-`
-
+```
 ---
 
 ## 六、总结与延伸
@@ -226,7 +215,7 @@ public User updateUser(User user) { ... }
 - @Cacheable：读缓存；@CachePut：写缓存；@CacheEvict：删缓存
 - Spring Cache 是缓存操作的抽象层，底层实现（Redis/Caffeine/EhCache）可一键切换
 - 内部方法调用绕过 AOP 代理，缓存不生效
-- Key 设计：用 alue 区分缓存空间，Key 在同一 value 内保持唯一且一致
+- Key 设计：用 value 区分缓存空间，Key 在同一 value 内保持唯一且一致
 
 **延伸阅读方向**：
 - Caffeine 本地缓存：高性能本地缓存，适合热点数据，与 Spring Cache 集成

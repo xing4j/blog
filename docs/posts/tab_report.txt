@@ -1,0 +1,17 @@
+﻿=== 2024-06-13-mysql-explain.md ===
+  Line 29: | [TAB]able | 当前行对应的表名 | |
+  Line 30: | [TAB]ype | **访问类型**，性能核心指标 | 重点！|
+  Line 203: - [TAB]ype 是否达到 ref 或以上？ALL 需要立即加索引
+
+=== 2024-09-14-reentrantlock-vs-synchronized.md ===
+  Line 25: | 超时尝试 | ❌ | ✅ [TAB]ryLock(timeout) |
+  Line 26: | 非阻塞尝试 | ❌ | ✅ [TAB]ryLock() |
+
+=== 2025-02-01-java-stream-pitfalls.md ===
+  Line 172: 6. [TAB]oMap 有重复 key 必须提供 merge function
+
+=== 2025-10-26-java-cpu-high.md ===
+  Line 196: 1. [TAB]op -c 找到 Java 进程 PID
+  Line 197: 2. [TAB]op -H -p PID 找到高 CPU 线程 TID
+  Line 200: 5. 使用 Arthas [TAB]hread -n 和 [TAB]race 在线定位，无需重启
+

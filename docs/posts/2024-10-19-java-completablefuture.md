@@ -22,7 +22,7 @@ CompletableFuture<T> 是 JDK 8 引入的增强版，实现了 CompletionStage<T>
 
 ### 2.1 创建
 
-`java
+```java
 // 有返回值的异步任务（supplyAsync）
 CompletableFuture<String> cf1 = CompletableFuture.supplyAsync(() -> {
     return fetchProductName(productId);  // 在 ForkJoinPool 中异步执行
@@ -41,11 +41,10 @@ CompletableFuture<String> cf3 = CompletableFuture.supplyAsync(() -> {
 
 // 直接用已知结果创建（测试/mock 常用）
 CompletableFuture<String> completed = CompletableFuture.completedFuture("result");
-`
-
+```
 ### 2.2 串行转换（thenApply / thenAccept / thenRun）
 
-`java
+```java
 // thenApply：有输入有输出，类似 Stream.map()
 CompletableFuture<Integer> priceFuture = CompletableFuture
     .supplyAsync(() -> fetchProduct(id))           // 返回 Product
@@ -61,11 +60,10 @@ cf.thenRun(() -> System.out.println("Done!"));
 
 // thenApplyAsync：在新线程中执行转换（默认复用同一线程）
 cf.thenApplyAsync(v -> transform(v), executor);
-`
-
+```
 ### 2.3 并发等待所有 / 任意一个
 
-`java
+```java
 // allOf：等待全部完成（没有合并结果的功能，需要手动 join）
 CompletableFuture<String> nameFuture = ...;
 CompletableFuture<Integer> priceFuture = ...;
@@ -85,11 +83,10 @@ CompletableFuture<Object> fastest = CompletableFuture.anyOf(
     queryFromCache(key),
     queryFromDB(key)
 );
-`
-
+```
 ### 2.4 两个任务组合
 
-`java
+```java
 // thenCombine：两个任务都完成后合并结果
 CompletableFuture<ProductVO> result = nameFuture.thenCombine(
     priceFuture,
@@ -101,11 +98,10 @@ CompletableFuture<ProductVO> result = nameFuture.thenCombine(
 CompletableFuture<Double> discount = CompletableFuture
     .supplyAsync(() -> fetchUser(userId))
     .thenCompose(user -> fetchDiscount(user.getLevel())); // 返回新的 CF
-`
-
+```
 ### 2.5 异常处理
 
-`java
+```java
 // exceptionally：异常恢复，类似 try-catch 中的默认值
 CompletableFuture<String> safe = CompletableFuture
     .supplyAsync(() -> fetchFromRemote(id))
@@ -127,13 +123,12 @@ cf.whenComplete((result, ex) -> {
     if (ex != null) metrics.recordError();
     else metrics.recordSuccess();
 });
-`
-
+```
 ---
 
 ## 三、实战：商品详情页并发聚合
 
-`java
+```java
 @Service
 public class ProductDetailService {
 
@@ -182,8 +177,7 @@ public class ProductDetailService {
             .get(3, TimeUnit.SECONDS);  // 设置整体超时，避免无限等待
     }
 }
-`
-
+```
 **性能对比**：假设 4 个接口各耗时 100ms
 - 顺序调用：400ms
 - CompletableFuture 并发：~100ms（节省 75%）
@@ -206,17 +200,16 @@ public class ProductDetailService {
 
 ### 坑 1：使用默认 ForkJoinPool 导致 IO 任务阻塞 CPU 任务
 
-`java
+```java
 // ❌ 危险：ForkJoinPool 是计算密集型任务设计的，被 IO 阻塞后影响 parallelStream
 CompletableFuture.supplyAsync(() -> httpClient.get(url));  // 使用了默认 ForkJoinPool
 
 // ✅ 始终为 IO 任务指定独立线程池
 CompletableFuture.supplyAsync(() -> httpClient.get(url), ioExecutor);
-`
-
+```
 ### 坑 2：忘记设置超时，一个下游挂死整个接口
 
-`java
+```java
 // ❌ 无超时：下游挂死时请求线程永久阻塞
 productFuture.get();
 
@@ -226,11 +219,10 @@ productFuture.get(2, TimeUnit.SECONDS);
 // ✅ JDK 9+ 的 orTimeout（超时后 CF 以异常完成）
 productFuture.orTimeout(2, TimeUnit.SECONDS)
     .exceptionally(ex -> defaultProduct());
-`
-
+```
 ### 坑 3：thenApply 和 thenCompose 混淆
 
-`java
+```java
 // ❌ 错误：thenApply 内返回 CompletableFuture，得到 CF<CF<User>>（双层嵌套）
 CompletableFuture<CompletableFuture<User>> wrong = orderFuture
     .thenApply(order -> fetchUser(order.getUserId())); // fetchUser 返回 CF<User>
@@ -238,11 +230,10 @@ CompletableFuture<CompletableFuture<User>> wrong = orderFuture
 // ✅ 正确：thenCompose 自动 flatten，得到 CF<User>
 CompletableFuture<User> correct = orderFuture
     .thenCompose(order -> fetchUser(order.getUserId()));
-`
-
+```
 ### 坑 4：allOf 不合并结果，需要手动 join
 
-`java
+```java
 // ❌ allOf 的返回类型是 CF<Void>，不包含各子任务结果
 CompletableFuture<Void> all = CompletableFuture.allOf(cf1, cf2, cf3);
 // all.get() 得到 null，无法获取 cf1/cf2/cf3 的结果
@@ -251,8 +242,7 @@ CompletableFuture<Void> all = CompletableFuture.allOf(cf1, cf2, cf3);
 all.thenApply(v -> {
     return combine(cf1.join(), cf2.join(), cf3.join());
 });
-`
-
+```
 ---
 
 ## 六、总结与延伸
@@ -260,7 +250,7 @@ all.thenApply(v -> {
 **核心要点**：
 - CompletableFuture 解决了 Future 的三大痛点：非阻塞获取、任务组合、异常处理
 - IO 密集型任务必须指定独立线程池，不能使用默认 ForkJoinPool
-- 串行依赖用 	henCompose，并行聚合用 llOf + join()，任意完成用 nyOf
+- 串行依赖用 hhenCompose，并行聚合用 allOf + join()，任意完成用 anyOf
 - 始终设置超时（get(timeout) 或 orTimeout()），避免下游挂死传导
 
 **延伸阅读方向**：

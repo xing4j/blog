@@ -18,15 +18,14 @@
 
 MySQL InnoDB 的索引用 B+树实现：
 
-`
+```
                     [30 | 60]                ← 根节点（非叶节点，只存键值，不存数据）
                    /    |    \
            [10|20]  [40|50]   [70|80]       ← 中间节点
           /  |  \
     [5|8] [12|15] [22|28]                   ← 叶节点（存储完整行数据或主键）
       ↔      ↔       ↔                      ← 叶节点双向链表（支持范围查询）
-`
-
+```
 **关键设计**：
 1. **非叶节点只存键**，叶节点存完整数据（聚簇索引）或主键（二级索引）
 2. **叶节点用双向链表串联**，支持高效范围查询（ORDER BY/BETWEEN）
@@ -48,13 +47,12 @@ MySQL InnoDB 的索引用 B+树实现：
 
 InnoDB 数据文件本身就是按主键组织的 B+树，叶节点存放完整行数据：
 
-`
+```
 聚簇索引叶节点：
 ┌──────────────────────────────────┐
 │ id=1 | name="Alice" | age=25 | … │  ← 完整行数据
 └──────────────────────────────────┘
-`
-
+```
 **影响**：主键的选择直接影响数据物理存储顺序。**推荐使用自增整数主键**的原因：
 - 自增整数：每次插入追加到末尾，B+树不需要频繁分裂（页分裂）
 - UUID 主键：随机插入，导致大量页分裂，写性能下降 30~50%
@@ -63,41 +61,37 @@ InnoDB 数据文件本身就是按主键组织的 B+树，叶节点存放完整�
 
 叶节点存储的是**主键值**，而不是完整行数据：
 
-`
+```
 二级索引（name 字段）叶节点：
 ┌─────────────────┐
 │ name="Alice" → id=1 │  ← 只存主键，不存完整行
 └─────────────────┘
-`
-
+```
 **回表查询**：通过二级索引找到主键后，再去聚簇索引查完整数据，需要两次 B+树查找：
 
-`
+```
 SELECT * FROM users WHERE name = 'Alice'
 → 二级索引 idx_name 找到 id=1
 → 回到聚簇索引用 id=1 查完整行数据（回表）
-`
-
+```
 **覆盖索引**：如果查询的字段都在索引中，不需要回表：
 
-`sql
+```sql
 -- 只查 id 和 name，而索引 idx_name 的叶节点已经包含 id（主键）
 SELECT id, name FROM users WHERE name = 'Alice';  -- 无需回表
-`
-
+```
 ---
 
 ## 四、复合索引与最左前缀原则
 
 复合索引 (a, b, c) 在 B+树中先按 a 排序，a 相同再按 b 排序，b 相同再按 c 排序：
 
-`
+```
 (a=1,b=2,c=3) → (a=1,b=2,c=5) → (a=1,b=3,c=1) → (a=2,b=1,c=2) → …
-`
-
+```
 因此：
 
-`sql
+```sql
 -- 索引：(user_id, status, create_time)
 
 WHERE user_id = 1                          -- ✅ 用 user_id（最左前缀）
@@ -105,22 +99,20 @@ WHERE user_id = 1 AND status = 'paid'      -- ✅ 用 (user_id, status)
 WHERE user_id = 1 AND status = 'paid' AND create_time > '2024-01-01'  -- ✅ 全用
 WHERE status = 'paid'                      -- ❌ 跳过最左列，不走索引
 WHERE user_id = 1 AND create_time > '2024-01-01'  -- ⚠️ 只用 user_id，create_time 不走索引（中间跳过了 status）
-`
-
+```
 **范围查询截断**：范围查询（>、<、BETWEEN、LIKE 右模糊）后面的列不走索引：
 
-`sql
+```sql
 -- 索引：(age, name)
 WHERE age > 20 AND name = 'Alice'
 -- age 走范围查询后，name 无法用索引过滤
 -- ✅ 改为：WHERE age = 20 AND name = 'Alice'（等值在前，范围在后）
-`
-
+```
 ---
 
 ## 五、索引设计实战原则
 
-`sql
+```sql
 -- 原则 1：区分度高的列放左边
 -- 性别（0/1）区分度极低，放左边几乎无效
 -- ❌
@@ -140,26 +132,24 @@ CREATE INDEX idx_cover ON users(name, id, email);
 
 -- 原则 4：控制索引数量（每个表建议不超过 5 个索引）
 -- 索引占存储，且写操作需要维护所有索引，过多索引拖慢写性能
-`
-
+```
 ---
 
 ## 六、常见坑点与最佳实践
 
 ### 坑 1：在低区分度列建索引
 
-`sql
+```sql
 -- ❌ status 只有 3 个值（pending/paid/cancelled），区分度极低
 -- 走索引反而比全表扫描慢（索引回表成本高）
 CREATE INDEX idx_status ON orders(status);
 
 -- ✅ 与高区分度列组合
 CREATE INDEX idx_user_status ON orders(user_id, status);
-`
-
+```
 ### 坑 2：对索引列做运算/函数
 
-`sql
+```sql
 -- ❌ 索引失效
 WHERE DATE(create_time) = '2024-01-01'
 WHERE LOWER(name) = 'alice'
@@ -169,8 +159,7 @@ WHERE id + 1 = 100
 WHERE create_time >= '2024-01-01 00:00:00' AND create_time < '2024-01-02 00:00:00'
 WHERE name = 'alice'  -- 使用 utf8mb4_ci 排序规则
 WHERE id = 99
-`
-
+```
 ---
 
 ## 七、总结与延伸

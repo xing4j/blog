@@ -10,11 +10,10 @@
 
 正常缓存流程：
 
-`
+```
 请求 → Redis（命中）→ 直接返回
 请求 → Redis（未命中）→ 查 DB → 写 Redis → 返回
-`
-
+```
 当缓存保护失效，大量请求直接打到数据库，导致 DB 过载。三种失效场景：
 
 | 问题 | 根因 | 影响 |
@@ -31,13 +30,12 @@
 
 攻击者或异常请求用大量不存在的 ID（如 -1、9999999）查询，缓存无法命中，每次都查 DB：
 
-`
+```
 请求 id=-1 → Redis 未命中 → DB 查询（无结果）→ 不缓存 → 下次请求继续打 DB
-`
-
+```
 ### 解法 1：缓存空值（最简单）
 
-`java
+```java
 public Product getProduct(Long id) {
     String key = "product:" + id;
     String cached = redis.get(key);
@@ -55,15 +53,14 @@ public Product getProduct(Long id) {
     }
     return product;
 }
-`
-
+```
 **缺点**：大量不同 ID 的无效请求会占用 Redis 内存。
 
 ### 解法 2：布隆过滤器（推荐）
 
 布隆过滤器能快速判断一个元素**是否一定不存在**（有假阳性，无假阴性）：
 
-`java
+```java
 @Component
 public class BloomFilterService {
     // 使用 Guava BloomFilter 或 Redisson RBloomFilter
@@ -85,8 +82,7 @@ public class BloomFilterService {
         return getFromCacheOrDB(id);
     }
 }
-`
-
+```
 ---
 
 ## 三、缓存击穿：热点 Key 瞬间过期
@@ -95,16 +91,15 @@ public class BloomFilterService {
 
 一个热点商品（如 iPhone 新品）缓存恰好过期，此时有 10000 个并发请求同时到来，全部穿透到 DB：
 
-`
+```
 t=100s：热点 Key 过期
 t=100s~100.1s：10000个请求 → 全部 Redis 未命中 → 全部去查 DB → DB 扛不住
-`
-
+```
 ### 解法 1：互斥锁（Mutex Lock）
 
 只允许一个线程去重建缓存，其他线程等待或返回旧值：
 
-`java
+```java
 public Product getProduct(Long id) {
     String key = "product:" + id;
     String cached = redis.get(key);
@@ -132,11 +127,10 @@ public Product getProduct(Long id) {
         return getProduct(id);  // 递归重试
     }
 }
-`
-
+```
 ### 解法 2：逻辑过期（不设 TTL，异步更新）
 
-`java
+```java
 public class CacheData {
     private Object data;
     private long expireTime;  // 逻辑过期时间（非 Redis TTL）
@@ -165,8 +159,7 @@ public Product getProduct(Long id) {
 
     return (Product) cached.getData();  // 返回稍旧的数据（可接受）
 }
-`
-
+```
 ---
 
 ## 四、缓存雪崩：大量 Key 同时失效
@@ -178,7 +171,7 @@ public Product getProduct(Long id) {
 
 ### 解法：TTL 随机抖动 + 高可用 + 限流降级
 
-`java
+```java
 // ✅ 解法 1：TTL 加随机抖动，错开过期时间
 int baseTtl = 3600;
 int jitter = ThreadLocalRandom.current().nextInt(300);  // 0~300秒随机偏移
@@ -192,8 +185,7 @@ redis.setex(key, baseTtl + jitter, value);
 
 // ✅ 解法 4：限流降级（Sentinel/Hystrix）
 // 即使缓存全失效，通过限流保护 DB，超出限制的请求返回降级响应
-`
-
+```
 ---
 
 ## 五、三种问题对比速查

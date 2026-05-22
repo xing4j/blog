@@ -12,7 +12,7 @@ Java 中所有对象赋值默认是**引用传递**：User b = a 只是让 b 指
 
 拷贝的核心问题在于**引用类型字段**：
 
-`
+```
 原对象 original                     浅拷贝 copy
 ┌────────────┐                    ┌────────────┐
 │ name="Alice"│                   │ name="Alice"│
@@ -26,8 +26,7 @@ Java 中所有对象赋值默认是**引用传递**：User b = a 只是让 b 指
                  │ city="北京"│   │ name="Alice"│
                  └──────────┘   │ address ──→ 新 Address 实例
                                 └────────────┘
-`
-
+```
 - **浅拷贝**：复制基本类型字段，引用类型字段只复制引用指针（共享底层对象）
 - **深拷贝**：递归复制所有引用类型对象，两个对象完全独立
 
@@ -37,7 +36,7 @@ Java 中所有对象赋值默认是**引用传递**：User b = a 只是让 b 指
 
 ### 2.1 Object.clone()（浅拷贝）
 
-`java
+```java
 public class User implements Cloneable {
     private String name;
     private Address address;  // 引用类型
@@ -56,11 +55,10 @@ User original = new User("Alice", new Address("北京"));
 User copy = original.clone();
 copy.getAddress().setCity("上海");
 System.out.println(original.getAddress().getCity()); // 输出：上海 ← 原对象被污染！
-`
-
+```
 ### 2.2 手动深拷贝（覆写 clone）
 
-`java
+```java
 @Override
 public User clone() {
     try {
@@ -72,13 +70,12 @@ public User clone() {
         throw new AssertionError();
     }
 }
-`
-
+```
 **缺点**：嵌套层次深时极易遗漏，新增字段必须同步修改 clone 方法，维护成本高。
 
 ### 2.3 拷贝构造函数（推荐简单对象）
 
-`java
+```java
 public class User {
     public User(User other) {
         this.name = other.name;               // String 不可变，引用可以复用
@@ -89,13 +86,12 @@ public class User {
 }
 
 User copy = new User(original);
-`
-
+```
 **优点**：明确可读，不依赖接口；**缺点**：每个类都要写，字段多时冗长。
 
 ### 2.4 序列化深拷贝（通用方案）
 
-`java
+```java
 // 方式 A：Jackson JSON 序列化（最常用，无需实现 Serializable）
 public static <T> T deepCopy(T obj, Class<T> clazz) {
     try {
@@ -122,11 +118,10 @@ public static <T extends Serializable> T deepCopy(T obj) {
         throw new RuntimeException("Deep copy failed", e);
     }
 }
-`
-
+```
 ### 2.5 各工具类的浅拷贝
 
-`java
+```java
 // Spring BeanUtils（浅拷贝，字段名相同即复制）
 org.springframework.beans.BeanUtils.copyProperties(source, target);
 
@@ -139,8 +134,7 @@ public interface UserMapper {
     @Mapping(target = "address", expression = "java(new Address(user.getAddress()))")
     UserDTO toDTO(User user);
 }
-`
-
+```
 ---
 
 ## 三、各方式性能与适用场景对比
@@ -162,7 +156,7 @@ public interface UserMapper {
 
 ### 坑 1：Spring BeanUtils 是浅拷贝，List 字段共享
 
-`java
+```java
 User original = new User();
 original.setTags(new ArrayList<>(Arrays.asList("tag1", "tag2")));
 
@@ -171,40 +165,36 @@ BeanUtils.copyProperties(original, copy);
 
 copy.getTags().add("tag3");
 // original.getTags() == ["tag1", "tag2", "tag3"] ← 原对象被污染！
-`
-
+```
 ### 坑 2：Apache BeanUtils 参数顺序与 Spring 相反
 
-`java
+```java
 // Spring：copyProperties(source, target)
 org.springframework.beans.BeanUtils.copyProperties(source, target);
 
 // Apache：copyProperties(target, source) ← 顺序相反！
 org.apache.commons.beanutils.BeanUtils.copyProperties(target, source);
-`
-
+```
 ### 坑 3：Jackson 深拷贝对 LocalDate 等类型需要配置
 
-`java
+```java
 ObjectMapper mapper = new ObjectMapper()
     .registerModule(new JavaTimeModule())     // 支持 Java 8 时间类型
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 User copy = mapper.readValue(mapper.writeValueAsBytes(original), User.class);
-`
-
+```
 ---
 
 ## 五、生产选型建议
 
-`
+```
 DTO/VO 属性复制（字段映射）      → MapStruct（编译期生成，类型安全，性能最佳）
 业务对象深拷贝（简单场景）        → Jackson deepCopy
 业务对象深拷贝（高性能场景）      → Kryo（注意线程安全，使用池化）
 字段少的简单对象                 → 拷贝构造函数（最直观）
 避免使用                        → Apache BeanUtils（性能差且参数顺序容易混淆）
-`
-
+```
 ---
 
 ## 六、总结与延伸

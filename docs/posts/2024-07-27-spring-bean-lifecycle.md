@@ -19,7 +19,7 @@ Spring IoC 容器不仅负责创建 Bean，还要：
 
 ## 二、完整生命周期：14 个关键节点
 
-`
+```
 Bean 定义加载（BeanDefinition 读取 XML / 注解）
     ↓
 1.  BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry()
@@ -48,8 +48,7 @@ Bean 定义加载（BeanDefinition 读取 XML / 注解）
 [Bean 就绪，放入容器]
     ↓
 14. [容器关闭] DisposableBean.destroy() / @Bean(destroyMethod)
-`
-
+```
 ---
 
 ## 三、各扩展点使用场景
@@ -58,7 +57,7 @@ Bean 定义加载（BeanDefinition 读取 XML / 注解）
 
 在所有 Bean 实例化前执行，可以修改 Bean 的元数据：
 
-`java
+```java
 @Component
 public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
     @Override
@@ -68,13 +67,12 @@ public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
         bd.getPropertyValues().add("url", "jdbc:mysql://prod-server/db");
     }
 }
-`
-
+```
 PropertyPlaceholderConfigurer（${...} 占位符替换）就是 BeanFactoryPostProcessor 的实现。
 
 ### 3.2 Aware 接口：让 Bean 感知容器
 
-`java
+```java
 @Component
 public class SpringContextHolder implements ApplicationContextAware, DisposableBean {
     private static ApplicationContext context;
@@ -94,11 +92,10 @@ public class SpringContextHolder implements ApplicationContextAware, DisposableB
         context = null;
     }
 }
-`
-
+```
 ### 3.3 @PostConstruct / @PreDestroy（推荐的初始化方式）
 
-`java
+```java
 @Service
 public class CacheService {
     private Map<String, Object> localCache;
@@ -118,11 +115,10 @@ public class CacheService {
         log.info("本地缓存已清理");
     }
 }
-`
-
+```
 ### 3.4 BeanPostProcessor：最重要的扩展点
 
-`java
+```java
 @Component
 public class LogBeanPostProcessor implements BeanPostProcessor {
     @Override
@@ -141,8 +137,7 @@ public class LogBeanPostProcessor implements BeanPostProcessor {
         return bean;  // 可以返回包装后的对象（AOP 代理）
     }
 }
-`
-
+```
 **重要**：postProcessAfterInitialization 返回的对象就是最终注入到其他 Bean 的对象，AOP 正是在此处用代理对象替换原始对象。
 
 ---
@@ -151,11 +146,10 @@ public class LogBeanPostProcessor implements BeanPostProcessor {
 
 同一个 Bean 中，三种初始化方式的执行顺序：
 
-`
+```
 @PostConstruct → afterPropertiesSet() → initMethod
-`
-
-`java
+```
+```java
 @Component
 public class OrderService implements InitializingBean {
 
@@ -174,8 +168,7 @@ public class OrderService implements InitializingBean {
     }
 }
 // @Bean(initMethod = "initMethod") 时触发 initMethod
-`
-
+```
 **推荐**：优先使用 @PostConstruct，语义清晰，无需实现 Spring 接口（低侵入性）。
 
 ---
@@ -184,7 +177,7 @@ public class OrderService implements InitializingBean {
 
 ### 坑 1：在构造函数中使用尚未注入的依赖
 
-`java
+```java
 @Service
 public class OrderService {
     @Autowired
@@ -201,11 +194,10 @@ public class OrderService {
         userService.doSomething();
     }
 }
-`
-
+```
 ### 坑 2：BeanPostProcessor 依赖了普通 Bean，导致后者无法被 AOP 代理
 
-`java
+```java
 // ❌ BeanPostProcessor 初始化时会触发其依赖的 Bean 提前实例化
 // 如果 DataService 被依赖，它会在 AOP BeanPostProcessor 之前就实例化，
 // 导致 DataService 的 AOP 代理失效
@@ -214,13 +206,12 @@ public class MyPostProcessor implements BeanPostProcessor {
     @Autowired
     private DataService dataService;  // ❌ 导致 DataService 过早实例化
 }
-`
-
+```
 解决：通过 ApplicationContext.getBean() 懒获取，避免构造时注入。
 
 ### 坑 3：@PostConstruct 中开启异步任务，但 @Async 代理尚未生成
 
-`java
+```java
 @Service
 public class TaskService {
     @PostConstruct
@@ -233,15 +224,14 @@ public class TaskService {
     @Async
     public void asyncMethod() { ... }
 }
-`
-
+```
 ---
 
 ## 六、总结与延伸
 
 **完整生命周期 14 步速记**：
 - **容器初始化期**：BeanDefinitionRegistryPostProcessor → BeanFactoryPostProcessor
-- **Bean 创建期**：实例化 → 属性注入 → Aware 回调 → BeanPostProcessor.before → 初始化（@PostConstruct/fterPropertiesSet/initMethod）→ BeanPostProcessor.after（AOP代理）
+- **Bean 创建期**：实例化 → 属性注入 → Aware 回调 → BeanPostProcessor.before → 初始化（@PostConstruct/afterPropertiesSet/initMethod）→ BeanPostProcessor.after（AOP代理）
 - **销毁期**：@PreDestroy / DisposableBean.destroy()
 
 **延伸阅读方向**：

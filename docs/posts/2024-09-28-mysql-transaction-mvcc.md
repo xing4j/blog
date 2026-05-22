@@ -29,7 +29,7 @@
 
 InnoDB 为每行数据隐式添加两列：
 
-`
+```
 ┌──────┬─────────┬──────────┬────────────┐
 │ id   │ name    │ DB_TRX_ID│ DB_ROLL_PTR│
 ├──────┼─────────┼──────────┼────────────┤
@@ -37,13 +37,12 @@ InnoDB 为每行数据隐式添加两列：
 └──────┴─────────┴──────────┴────────────┘
 DB_TRX_ID：最后修改该行的事务 ID（单调递增）
 DB_ROLL_PTR：回滚指针，指向 undo log 中的旧版本
-`
-
+```
 ### 2.2 Undo Log（版本链）
 
 每次修改行数据时，旧版本写入 undo log，通过回滚指针形成版本链：
 
-`
+```
 当前版本（DB_TRX_ID=103）name="Charlie"
     ↓ DB_ROLL_PTR
   旧版本（DB_TRX_ID=101）name="Bob"
@@ -51,32 +50,29 @@ DB_ROLL_PTR：回滚指针，指向 undo log 中的旧版本
   更旧版本（DB_TRX_ID=98）name="Alice"
     ↓ DB_ROLL_PTR
   NULL（最初版本）
-`
-
+```
 ### 2.3 Read View（读视图）
 
 Read View 是事务开启快照时的"快照镜头"，记录：
 
-`java
+```java
 ReadView {
     m_ids: [101, 102, 103]  // 生成 ReadView 时，所有活跃（未提交）的事务 ID 列表
     min_trx_id: 101          // m_ids 中最小值
     max_trx_id: 104          // 下一个将分配的事务 ID（已分配最大 + 1）
     creator_trx_id: 102      // 创建该 ReadView 的事务 ID
 }
-`
+```
+**可见性判断规则**（对版本链中某个版本的 rrx_id 判断）：
 
-**可见性判断规则**（对版本链中某个版本的 	rx_id 判断）：
-
-`
+```
 1. trx_id == creator_trx_id → 可见（自己修改的，能看到）
 2. trx_id < min_trx_id      → 可见（已提交的旧事务）
 3. trx_id >= max_trx_id     → 不可见（生成 ReadView 之后开启的事务）
 4. min_trx_id <= trx_id < max_trx_id：
    - trx_id 在 m_ids 中  → 不可见（活跃未提交事务）
    - trx_id 不在 m_ids 中 → 可见（已提交事务）
-`
-
+```
 ---
 
 ## 三、REPEATABLE READ vs READ COMMITTED 的区别
@@ -88,7 +84,7 @@ ReadView {
 
 ### 示例：理解可重复读
 
-`
+```
 时间线：
 T1 开启事务，Read View: m_ids=[T1], min=T1, max=T2
 T2 开启事务，修改 id=1 的 name 为 "Bob"，提交（T2 的 trx_id 已不在 m_ids 中）
@@ -97,8 +93,7 @@ T1 读取 id=1
   → 但 T2 在 T1 的 ReadView 生成时是活跃的（T2 > T1，max = T2+1）
   → 实际上 T2 > T1_ReadView 的 max_trx_id-1，属于第 3 条规则：不可见
   → 沿版本链找到 T2 之前的版本（name="Alice"）→ 返回 "Alice"
-`
-
+```
 → 即使 T2 已提交，T1 仍读到 "Alice"，实现了可重复读。
 
 ---
@@ -113,14 +108,13 @@ T1 读取 id=1
 
 **幻读问题**：在 REPEATABLE READ 下，快照读不会幻读（因为读的是历史快照），但**当前读可能幻读**：
 
-`sql
+```sql
 -- 事务 A
 BEGIN;
 SELECT * FROM orders WHERE amount > 100;   -- 快照读：返回 5 条
 -- 事务 B 插入一条 amount=200 的记录并提交
 SELECT * FROM orders WHERE amount > 100 FOR UPDATE;  -- 当前读：返回 6 条（幻读！）
-`
-
+```
 InnoDB 通过 **Gap Lock（间隙锁）** 解决当前读的幻读：对范围内的间隙加锁，阻止其他事务插入。
 
 ---
@@ -140,7 +134,7 @@ InnoDB 通过 **Gap Lock（间隙锁）** 解决当前读的幻读：对范围�
 
 ### 坑 1：长事务让 undo log 膨胀
 
-`sql
+```sql
 -- ❌ 事务持续很久，期间产生的 undo log 无法被清理
 -- 因为有活跃事务的 ReadView 还在引用旧版本
 BEGIN;
@@ -150,17 +144,15 @@ COMMIT;
 
 -- 查看长事务
 SELECT * FROM information_schema.INNODB_TRX WHERE TIME_TO_SEC(TIMEDIFF(NOW(), trx_started)) > 60;
-`
-
+```
 ### 坑 2：误解 REPEATABLE READ 能防所有幻读
 
-`sql
+```sql
 -- ❌ 当前读（FOR UPDATE）依然会发生幻读
 SELECT COUNT(*) FROM orders WHERE user_id = 1;  -- 返回 5
 -- 另一个事务插入了一条 user_id=1 的记录并提交
 SELECT COUNT(*) FROM orders WHERE user_id = 1 FOR UPDATE;  -- 返回 6 ← 幻读
-`
-
+```
 ---
 
 ## 七、总结与延伸

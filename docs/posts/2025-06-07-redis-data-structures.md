@@ -10,11 +10,10 @@
 
 Redis 对外暴露的数据类型（5 种基础 + 3 种特殊）：
 
-`
+```
 基础类型：String / List / Hash / Set / ZSet（Sorted Set）
 特殊类型：HyperLogLog / Geo / Stream（Redis 5.0+）
-`
-
+```
 每种类型内部有多种**编码**（底层实现），根据数据大小自动切换：
 
 | 类型 | 小数据编码 | 大数据编码 |
@@ -31,7 +30,7 @@ Redis 对外暴露的数据类型（5 种基础 + 3 种特殊）：
 
 ### 核心命令与应用
 
-`ash
+```bash
 # 基本操作
 SET key value EX 3600      # 设置并过期
 SETNX key value            # 不存在才设置（分布式锁基础）
@@ -42,8 +41,7 @@ MGET key1 key2 key3        # 批量获取（减少网络往返）
 INCR counter               # 原子自增 1（计数器）
 INCRBY counter 100         # 原子增加 100
 DECR stock                 # 原子自减（库存扣减）
-`
-
+```
 **典型场景**：
 - 分布式缓存（SET key value EX ttl）
 - 计数器（页面访问量、点赞数）
@@ -54,15 +52,14 @@ DECR stock                 # 原子自减（库存扣减）
 
 ## 三、Hash：结构化存储的首选
 
-`ash
+```bash
 HSET user:1 name "Alice" age 25 email "alice@example.com"
 HGET user:1 name          # "Alice"
 HMGET user:1 name age     # ["Alice", "25"]
 HGETALL user:1            # 所有字段
 HINCRBY user:1 age 1      # age 原子自增
 HDEL user:1 email         # 删除字段
-`
-
+```
 **vs String JSON**：
 
 | | Hash 存储 | String JSON |
@@ -78,7 +75,7 @@ HDEL user:1 email         # 删除字段
 
 ## 四、List：双向链表的多用途
 
-`ash
+```bash
 LPUSH queue task1 task2 task3   # 左侧插入（栈）
 RPUSH queue task4                # 右侧插入（队列）
 LPOP queue                       # 左侧弹出
@@ -86,11 +83,10 @@ RPOP queue                       # 右侧弹出
 BLPOP queue 30                   # 阻塞等待 30 秒（消息队列）
 LRANGE queue 0 -1                # 获取全部
 LLEN queue                       # 长度
-`
-
+```
 **两种使用模式**：
 
-`
+```
 消息队列模式（RPUSH + BLPOP）：
 生产者：RPUSH tasks "job1"
 消费者：BLPOP tasks 0  ← 阻塞等待，有消息立即返回
@@ -99,15 +95,14 @@ LLEN queue                       # 长度
 每次发布新文章：LPUSH user:1:articles articleId
 保留最新 100 篇：LTRIM user:1:articles 0 99
 获取最新 10 篇：LRANGE user:1:articles 0 9
-`
-
+```
 **限制**：List 作为消息队列不支持消费确认（ACK）和消费者组，生产消息队列推荐 Stream 或 Kafka。
 
 ---
 
 ## 五、Set：集合运算的利器
 
-`ash
+```bash
 SADD user:1:follow 101 102 103   # 用户 1 关注了 101 102 103
 SADD user:2:follow 102 103 104   # 用户 2 关注了 102 103 104
 
@@ -120,8 +115,7 @@ SISMEMBER user:1:follow 102         # 判断是否关注
 SMEMBERS user:1:follow              # 所有关注
 SRANDMEMBER lucky:pool 3            # 随机取 3 个（抽奖）
 SPOP lucky:pool                     # 随机弹出（不重复抽奖）
-`
-
+```
 **典型场景**：关注关系、共同好友、标签系统、抽奖池
 
 ---
@@ -130,7 +124,7 @@ SPOP lucky:pool                     # 随机弹出（不重复抽奖）
 
 ZSet 是带权重（score）的有序集合，每个成员对应一个 double 类型的 score：
 
-`ash
+```bash
 ZADD leaderboard 9800 "Alice"   # 添加分数
 ZADD leaderboard 9500 "Bob"
 ZADD leaderboard 9900 "Charlie"
@@ -140,32 +134,29 @@ ZREVRANGE leaderboard 0 9 WITHSCORES    # 排名前10（高分在前）
 ZREVRANK leaderboard "Alice"             # Alice 的排名（从0开始）
 ZSCORE leaderboard "Alice"               # Alice 的分数
 ZRANGEBYSCORE leaderboard 9000 10000    # 9000~10000 分的玩家
-`
-
+```
 **内部编码**：小数据用 listpack，大数据用 **跳表（skiplist）**。跳表支持 O(logN) 的插入/删除/查找，且比红黑树更适合按范围查询：
 
-`
+```
 跳表结构（简化）：
 Level 3: 1 --------→ 9
 Level 2: 1 ---→ 4 --→ 9
 Level 1: 1 → 2 → 4 → 5 → 9
-`
-
+```
 **典型场景**：游戏排行榜、热搜词排序、带权重的任务调度
 
 ---
 
 ## 七、HyperLogLog：大数据基数统计
 
-`ash
+```bash
 # 统计 UV（每日独立访客），不需要精确值
 PFADD uv:2024-01-01 "user1" "user2" "user3"
 PFADD uv:2024-01-01 "user1"  # 重复，不会增加
 
 PFCOUNT uv:2024-01-01        # 估算基数（误差 ≤ 0.81%）
 PFMERGE uv:week uv:2024-01-01 uv:2024-01-02  # 合并多天 UV
-`
-
+```
 **内存极省**：无论集合有多大，每个 HyperLogLog 结构固定占用 12KB。适合不需要精确值的海量基数统计。
 
 ---

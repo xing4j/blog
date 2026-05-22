@@ -22,11 +22,9 @@ JDK 6 对 synchronized 做了大幅优化（锁升级、偏向锁、自旋锁）
 | 可重入 | ✅ | ✅ |
 | 公平锁 | ❌（始终非公平）| ✅ 可选（构造参数指定）|
 | 可中断等待 | ❌ | ✅ lockInterruptibly() |
-| 超时尝试 | ❌ | ✅ 	ryLock(timeout) |
-| 非阻塞尝试 | ❌ | ✅ 	ryLock() |
-| 多条件变量 | 1 个（wait/
-otify）| 多个（
-ewCondition()）|
+| 超时尝试 | ❌ | ✅ tryLock(timeout) |
+| 非阻塞尝试 | ❌ | ✅ tryLock() |
+| 多条件变量 | 1 个（wait/notify）| 多个（newCondition()）|
 | 自动释放 | ✅ 异常时自动释放 | ❌ 必须在 finally 中手动 unlock |
 | 低竞争性能 | JDK 6+ 偏向锁，极快 | 略慢（AQS 初始化开销）|
 | 高竞争性能 | 相当 | 相当 |
@@ -39,14 +37,13 @@ ewCondition()）|
 
 JDK 6 引入了**锁升级**机制，synchronized 不再直接进入重量级锁，而是经过以下四个状态渐进升级：
 
-`
+```
 无锁 → 偏向锁 → 轻量级锁 → 重量级锁
   │         │            │           │
   │    单线程  │  竞争不激烈  │  线程阻塞挂起│
   │    零开销  │  CAS 自旋   │  OS 内核参与 │
   └─→ MarkWord 中存储持有线程 ID
-`
-
+```
 - **偏向锁**：第一个加锁的线程将自己的 ThreadID 写入对象 MarkWord，后续再次加锁仅检查 ID，无 CAS 操作
 - **轻量级锁**：多线程竞争时，通过 CAS 将锁记录指针写入 MarkWord，自旋等待，不挂起线程
 - **重量级锁**：自旋超过阈值，升级为操作系统 Mutex，线程进入阻塞等待
@@ -57,7 +54,7 @@ JDK 6 引入了**锁升级**机制，synchronized 不再直接进入重量级锁
 
 ReentrantLock 内部维护一个 AQS 同步状态（state）和一个 CLH 变体等待队列：
 
-`
+```
 state = 0         → 锁未持有
 state = 1         → 锁已持有（重入时 state 递增）
 state = n（n>1）  → 同一线程重入了 n 次
@@ -65,8 +62,7 @@ state = n（n>1）  → 同一线程重入了 n 次
 等待队列（双向链表）：
 Head ←→ Node(Thread-A) ←→ Node(Thread-B) ←→ Tail
          （等待中）            （等待中）
-`
-
+```
 lock() 首先 CAS 尝试将 state 从 0 改为 1，失败则将当前线程封装为 Node 入队，调用 LockSupport.park() 挂起。unlock() 释放锁后，找到队列中的下一个节点，LockSupport.unpark() 唤醒。
 
 ---
@@ -75,7 +71,7 @@ lock() 首先 CAS 尝试将 state 从 0 改为 1，失败则将当前线程封�
 
 ### 4.1 可中断等待：防止死等
 
-`java
+```java
 ReentrantLock lock = new ReentrantLock();
 
 void cancelableTask() throws InterruptedException {
@@ -98,11 +94,10 @@ Thread t = new Thread(() -> {
 });
 t.start();
 t.interrupt();  // 中断等待，线程收到 InterruptedException
-`
-
+```
 ### 4.2 超时获取锁：避免死锁
 
-`java
+```java
 ReentrantLock lockA = new ReentrantLock();
 ReentrantLock lockB = new ReentrantLock();
 
@@ -128,13 +123,12 @@ void transferMoney(Account from, Account to, int amount) {
         Thread.sleep(ThreadLocalRandom.current().nextInt(10));
     }
 }
-`
-
+```
 ### 4.3 多条件变量：有界阻塞队列
 
 synchronized 的 wait/notify 只有一个等待集合，无法区分"等待非空"和"等待非满"两种条件。Condition 可以精确唤醒特定等待集合：
 
-`java
+```java
 public class BoundedBuffer<T> {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition notEmpty = lock.newCondition(); // 消费者等待
@@ -171,36 +165,32 @@ public class BoundedBuffer<T> {
         }
     }
 }
-`
-
-> 如果用 synchronized 实现，只能 
-otifyAll() 唤醒所有等待线程（生产者和消费者都被唤醒），造成大量无效竞争，即"惊群效应"。
+```
+> 如果用 synchronized 实现，只能 notifyAll() 唤醒所有等待线程（生产者和消费者都被唤醒），造成大量无效竞争，即"惊群效应"。
 
 ### 4.4 公平锁：防止线程饥饿
 
-`java
+```java
 // 非公平锁（默认）：新来的线程可以插队，吞吐量高但可能有线程长期等待
 ReentrantLock unfairLock = new ReentrantLock();
 
 // 公平锁：严格按 FIFO 顺序，防止线程饥饿，但吞吐量略低
 ReentrantLock fairLock = new ReentrantLock(true);
-`
-
+```
 公平锁适用于：需要严格保证请求顺序、防止某些线程因竞争劣势永远等待的场景（如资源分配系统）。绝大多数场景用非公平锁，性能更好。
 
 ---
 
 ## 五、如何选择
 
-`
+```
 需要可中断等待？                           → ReentrantLock.lockInterruptibly()
 需要超时尝试？                             → ReentrantLock.tryLock(timeout)
 需要非阻塞尝试？                           → ReentrantLock.tryLock()
 需要多个等待条件（精确唤醒）？              → ReentrantLock + Condition
 需要公平锁？                               → ReentrantLock(true)
 以上都不需要，只需互斥 + 简单等待唤醒？    → synchronized（代码更简洁）
-`
-
+```
 **通用建议**：默认用 synchronized，代码简洁、IDE 支持好、不会忘记 unlock。需要以上高级特性时升级为 ReentrantLock。
 
 ---
@@ -209,7 +199,7 @@ ReentrantLock fairLock = new ReentrantLock(true);
 
 ### 坑 1：忘记在 finally 中 unlock
 
-`java
+```java
 // ❌ doWork() 抛异常，lock 永远不会 unlock，其他线程全部死锁
 lock.lock();
 doWork();
@@ -222,11 +212,10 @@ try {
 } finally {
     lock.unlock();
 }
-`
-
+```
 ### 坑 2：将 lock() 放在 try 外面
 
-`java
+```java
 // ❌ lock() 本身可能抛出异常（如 OOM），此时 finally 中 unlock() 会抛 IllegalMonitorStateException
 try {
     lock.lock();   // 应该在 try 外面！
@@ -242,11 +231,10 @@ try {
 } finally {
     lock.unlock();
 }
-`
-
+```
 ### 坑 3：条件等待不用 while 而用 if
 
-`java
+```java
 // ❌ 使用 if 检查条件：虚假唤醒（spurious wakeup）后不重新检查，可能直接执行
 lock.lock();
 try {
@@ -260,8 +248,7 @@ try {
     while (queue.isEmpty()) condition.await();  // 虚假唤醒后重新检查
     queue.poll();
 } finally { lock.unlock(); }
-`
-
+```
 ---
 
 ## 七、总结与延伸
@@ -270,7 +257,7 @@ try {
 - synchronized 经 JDK 6 优化（锁升级）后性能与 ReentrantLock 相当，代码更简洁
 - ReentrantLock 提供可中断等待、超时获取、公平锁、多 Condition 四个关键高级特性
 - 选锁原则：能用 synchronized 就用，需要高级特性再升级到 ReentrantLock
-- ReentrantLock 必须在 inally 中 unlock()，条件等待必须用 while 检查
+- ReentrantLock 必须在 finally 中 unlock()，条件等待必须用 while 检查
 
 **延伸阅读方向**：
 - StampedLock：Java 8 引入的乐观读锁，适合读多写少场景

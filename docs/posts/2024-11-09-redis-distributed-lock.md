@@ -10,15 +10,14 @@
 
 多实例部署下，JVM 内的 synchronized/ReentrantLock 只能保证单进程互斥，跨进程的共享资源竞争需要外部协调：
 
-`
+```
 实例 A（JVM 1）   实例 B（JVM 2）
      ↓                  ↓
   synchronized     synchronized
   (各自独立，无法互斥)
          ↓↓↓↓↓↓↓
        MySQL / Redis（共享资源）← 竞争！
-`
-
+```
 **分布式锁的三个基本要求**：
 1. **互斥性**：同一时刻只有一个进程持有锁
 2. **安全释放**：只有锁的持有者能释放锁（防止误删他人锁）
@@ -30,16 +29,15 @@
 
 ### 版本 1：SETNX（有死锁风险）
 
-`java
+```java
 // ❌ 问题：SETNX 和 EXPIRE 是两个命令，非原子操作
 // 若 SETNX 成功后进程崩溃，锁永不释放
 redis.setnx("lock:stock", "1");
 redis.expire("lock:stock", 30);
-`
-
+```
 ### 版本 2：SET NX EX（原子性，但有误删风险）
 
-`java
+```java
 // ✅ 原子性：SET key value NX EX timeout（Redis 2.6.12+）
 boolean locked = redis.set("lock:stock", "1", SetParams.setParams().nx().ex(30));
 
@@ -52,11 +50,10 @@ if (locked) {
         // 场景：业务超时 > 锁过期 → 锁被其他进程获取 → 本进程删了别人的锁
     }
 }
-`
-
+```
 ### 版本 3：SET NX EX + 唯一 Value（安全释放）
 
-`java
+```java
 String lockValue = UUID.randomUUID().toString();  // 唯一标识
 
 boolean locked = redis.set("lock:stock", lockValue, SetParams.setParams().nx().ex(30));
@@ -71,11 +68,10 @@ if (locked) {
         }
     }
 }
-`
-
+```
 ### 版本 4：Lua 脚本保证释放的原子性（生产可用）
 
-`java
+```java
 String lockValue = UUID.randomUUID().toString();
 
 boolean locked = redis.set("lock:stock", lockValue, SetParams.setParams().nx().ex(30));
@@ -92,13 +88,12 @@ if (locked) {
                            Collections.singletonList(lockValue));
     }
 }
-`
-
+```
 ### 版本 5：Redisson（生产首选）
 
 Redisson 封装了所有细节，还额外解决了**锁续期（看门狗）**问题：
 
-`java
+```java
 @Autowired
 private RedissonClient redissonClient;
 
@@ -122,18 +117,16 @@ public void deductStock(Long itemId) {
         }
     }
 }
-`
-
+```
 **Redisson 看门狗机制**：若未指定 leaseTime，Redisson 默认 30s，并启动后台线程每 10s 续期一次，直到业务方法完成：
 
-`
+```
 业务方法执行中
     ↓ 每 10s
 Watchdog 线程：SET PX 30000 → 续期
     ↓ 业务完成
 unlock()：释放锁，Watchdog 停止
-`
-
+```
 ---
 
 ## 三、Redlock：多节点 Redis 的分布式锁
@@ -142,7 +135,7 @@ unlock()：释放锁，Watchdog 停止
 
 Redlock 使用 **N 个独立 Redis 节点**（推荐 5 个），向多数节点（N/2+1）申请锁：
 
-`java
+```java
 // Redisson 实现 Redlock
 RLock lock1 = redisson1.getLock("lock:stock");
 RLock lock2 = redisson2.getLock("lock:stock");
@@ -155,8 +148,7 @@ try {
 } finally {
     redLock.unlock();
 }
-`
-
+```
 **Redlock 争议**：Redis 作者 Antirez 和 Martin Kleppmann 有著名争论——Redlock 在时钟漂移场景下不是绝对安全的。生产中，若对分布式锁有极高安全要求，考虑 **ZooKeeper** 或 **etcd** 锁（基于强一致性协议 Paxos/Raft）。
 
 ---
@@ -177,17 +169,16 @@ try {
 
 ### 坑 1：锁粒度太粗，退化为单线程
 
-`java
+```java
 // ❌ 用同一把锁锁住所有商品，并发度降为 1
 RLock lock = redissonClient.getLock("lock:stock");
 
 // ✅ 按商品 ID 加锁，不同商品并发不阻塞
 RLock lock = redissonClient.getLock("lock:stock:" + itemId);
-`
-
+```
 ### 坑 2：锁内发送 HTTP 请求，业务超时导致锁过期
 
-`java
+```java
 // ❌ 锁内调用第三方接口，若超时 > 锁 TTL，锁提前释放
 RLock lock = redissonClient.getLock("lock:order");
 lock.lock(5, TimeUnit.SECONDS);
@@ -200,17 +191,15 @@ try {
 
 // ✅ 锁内不做 IO，或使用 Redisson 看门狗（不指定 leaseTime）
 lock.lock();  // 不指定时间，启用看门狗自动续期
-`
-
+```
 ### 坑 3：非持有者调用 unlock() 抛异常
 
-`java
+```java
 // ✅ 释放前检查是否仍持有锁
 if (lock.isHeldByCurrentThread()) {
     lock.unlock();
 }
-`
-
+```
 ---
 
 ## 六、总结与延伸
