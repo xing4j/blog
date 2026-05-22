@@ -240,3 +240,9 @@ UserQuery query = UserQuery.builder()
 | 装饰器 | @Primary 包装 | 动态添加缓存/日志 |
 | 责任链 | Interceptor/Filter | 审批流、请求处理 |
 | 建造者 | @Builder | 复杂对象构造 |
+
+**延伸阅读**：
+- 《设计模式：可复用面向对象软件的基础》— GoF 23 种模式的原始描述与动机
+- [Spring 源码阅读](https://github.com/spring-projects/spring-framework) — BeanFactory/AOP 中设计模式的真实应用
+- 《Head First 设计模式》— 最适合入门的图解设计模式教程
+- 重构 vs 设计模式 — Martin Fowler《重构》中关于何时引入模式的权衡原则
