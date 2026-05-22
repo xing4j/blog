@@ -1,6 +1,6 @@
 # 📚 文章归档
 
-> 共 73 篇文章
+> 共 74 篇文章
 
 ## Java 核心
 
@@ -110,4 +110,8 @@
 ## 工具与效率
 
 - [Hello World — 博客搭建记录](posts/2026-05-15-hello-world.md) — `2026-05-15`
+
+## AI
+
+- [AI 时代开发者必懂：大模型、智能体、Prompt 与 Vibe Coding 全解析](posts/2026-05-22-ai-terminology-guide.md) — `2026-05-22`
 
