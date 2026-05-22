@@ -432,3 +432,19 @@ public class OrderTransactionListener implements RocketMQLocalTransactionListene
 | 回滚不删库 | 事务 ROLLBACK 不会删除已写入数据库的数据 |
 | 事务回查次数 | 默认最多 15 次，超过后丢弃（需人工介入） |
 | Broker 配置 | 事务消息需要 Broker 开启事务功能（默认开启） |
+
+---
+
+## 七、总结与延伸
+
+**核心要点**：
+- **延迟消息**：通过内置 SCHEDULE_TOPIC_XXXX 中转实现，精度约 1s，适合订单超时、定时提醒等场景；RocketMQ 5.x 支持基于 TimerWheel 的任意时间精度延迟
+- **事务消息**：两阶段提交（Half Message + Commit/Rollback）+ Broker 主动回查机制，解决本地事务和消息发送的原子性问题
+- 事务监听器的 `executeLocalTransaction` 和 `checkLocalTransaction` 必须是**幂等**操作，避免重复执行导致数据错误
+- 事务回查上限默认 15 次，超出后消息丢弃——生产必须监控 `RMQ_SYS_TRANS_HALF_TOPIC` 的残留消息并建立告警
+
+**延伸阅读方向**：
+- RocketMQ 5.x 新特性：Pop 消费模式（无状态消费）、任意时间延迟消息的 TimerWheel 实现原理
+- 分布式事务选型：事务消息（最终一致性）vs Seata TCC（强一致性）vs SAGA（长事务）的对比与取舍
+- 消息幂等与事务消息配合：如何在消费端实现 Exactly Once 语义，避免重复消费带来的业务副作用
+- 阿里云消息服务 RocketMQ 版：云托管的自动运维、弹性扩缩容，以及与本地部署的功能差异

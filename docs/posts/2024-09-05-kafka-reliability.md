@@ -361,3 +361,20 @@ max.poll.interval.ms=300000
 | 消息丢失 | acks=1 + Leader 宕机 | 改为 acks=all |
 | Offset 提交失败 | Consumer 超时被踢出 | 增大 `session.timeout.ms` |
 | 消费延迟 | `linger.ms` 过大 | 调小 Producer 端 `linger.ms` |
+
+---
+
+## 九、总结与延伸
+
+**核心要点**：
+- Kafka 消息可靠性是 Producer、Broker、Consumer 三端协同的结果，任何一端配置不当都会导致消息丢失或重复
+- **不丢消息**：Producer acks=all + retries、Broker min.insync.replicas=2 + unclean.leader.election=false、Consumer 手动提交 offset
+- **不重消费**：消费端必须实现业务幂等，Redis SET NX 或数据库唯一约束是最常用方案
+- Exactly Once 语义实现代价高，生产环境多数场景 At Least Once + 幂等即可满足
+- 参数调优重点：`max.poll.interval.ms` 决定消费超时，设得太小会频繁 Rebalance；设得太大会延迟故障检测
+
+**延伸阅读方向**：
+- Kafka Streams：在流式计算管道中实现 Exactly Once 语义的完整方案
+- Kafka Connect：数据管道 Connector 的容错机制与 offset 存储策略
+- Confluent Schema Registry：配合 Avro/Protobuf 实现消息格式版本管理，防止 Schema 不兼容导致消费失败
+- Pulsar vs Kafka：存储计算分离架构对消息可靠性和扩展性的影响对比

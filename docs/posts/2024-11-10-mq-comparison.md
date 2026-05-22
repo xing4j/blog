@@ -272,3 +272,29 @@ producer.setTransactionListener(new TransactionListener() {
 | **功能丰富** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
 | **运维难度** | 低 | 高 | 中 |
 | **国内社区** | 一般 | 活跃 | 非常活跃 |
+
+---
+
+## 九、常见坑点与最佳实践
+
+1. **RabbitMQ 内存告警导致阻塞**：消息积压超过内存阈值（默认 40%）时触发 flow control，生产者被阻塞——必须配置死信队列（DLX）+ TTL，并监控队列深度
+2. **Kafka Rebalance 风暴**：Consumer 频繁 Rebalance 导致大量重复消费——增大 `max.poll.interval.ms`，减少 `max.poll.records`，或使用静态组成员（`group.instance.id`）
+3. **Kafka 分区数难扩展**：分区数增加后 key hash 分布改变，消息顺序性被破坏——提前按"峰值TPS ÷ 单分区吞吐"规划分区数
+4. **RocketMQ NameServer 单点**：生产环境至少部署 2 个 NameServer，客户端轮询连接，单个故障不影响路由查询
+5. **死信队列无人处理**：消费失败消息进入 DLQ 后若无监控重发机制，业务数据将永久丢失——必须监控 DLQ 告警并建立人工重发流程
+
+---
+
+## 十、总结与延伸
+
+**核心要点**：
+- **RabbitMQ**：路由灵活，延迟最低（微秒级），适合复杂路由和低延迟场景；消息堆积能力弱是主要短板
+- **Kafka**：吞吐极高（百万/s），持久化消息支持回放，是大数据和日志收集的首选；功能相对简单
+- **RocketMQ**：功能最全（延迟消息、事务消息、顺序消息），国内生态最好，适合电商/金融核心链路
+- 选型核心：**场景驱动而非技术驱动**，不是"哪个最好"而是"哪个最适合当前业务需求"
+
+**延伸阅读方向**：
+- Apache Pulsar：存算分离架构的新一代消息队列，兼顾 Kafka 的吞吐和 RabbitMQ 的功能特性
+- 消息队列监控：Kafka Manager/AKHQ、RocketMQ Dashboard、RabbitMQ Management UI 的核心监控指标
+- 消息追踪链路：SkyWalking 与消息队列集成，实现跨服务的端到端消息追踪
+- 云原生消息服务：阿里云 ONS、腾讯云 CMQ 与自建 MQ 的成本和运维对比

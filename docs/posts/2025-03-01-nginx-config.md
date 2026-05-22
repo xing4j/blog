@@ -476,3 +476,20 @@ awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -2
 | `nginx -s stop` | 快速停止 |
 | `nginx -s quit` | 优雅停止（等待请求处理完） |
 | `nginx -V` | 查看编译参数和模块 |
+
+---
+
+## 七、总结与延伸
+
+**核心要点**：
+- Nginx location 匹配优先级：精确匹配 `=` > 前缀 `^~` > 正则 `~` > 普通前缀，理解优先级是排查路由问题的关键
+- 反向代理必须透传 `X-Real-IP` 和 `X-Forwarded-For`，否则后端服务获取不到真实客户端 IP
+- 限流 `limit_req`（频率）和 `limit_conn`（并发）配合 `burst` 处理突发流量；`nodelay` 决定突发请求是立即处理还是排队等待
+- 负载均衡默认轮询，有状态服务用 `ip_hash`，处理时长差异大用 `least_conn`
+- 生产必备：Gzip 压缩、长连接 keepalive、合理的超时时间（connect/send/read 分别配置）、安全响应头
+
+**延伸阅读方向**：
+- OpenResty（Nginx + Lua）：在 Nginx 层实现复杂业务逻辑（动态鉴权、灰度发布、限流熔断）
+- Nginx 动态 upstream：基于 `nginx-upstream-jdomain` 或 Consul 实现服务发现和动态路由
+- APISIX vs Kong：基于 Nginx/OpenResty 的 API 网关，在 Nginx 之上提供插件化的网关能力
+- Nginx 性能调优：`worker_processes`、`worker_connections`、epoll 事件模型对高并发的影响
