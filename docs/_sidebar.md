@@ -1,6 +1,7 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [SDD、宪章与 Skill：AI 辅助开发的工程方法论全景](posts/2026-05-22-sdd-ai-charter-skills.md)
   - [AI 时代开发者必懂：大模型、智能体、Prompt 与 Vibe Coding 全解析](posts/2026-05-22-ai-terminology-guide.md)
   - [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md)
   - [qiankun 微前端框架：原理详解与实战指南](posts/2026-05-17-qiankun-micro-frontend.md)
@@ -25,7 +26,8 @@
   - [性能与质量 (5)](posts/#性能与质量)
   - [Linux 运维 (1)](posts/#linux-运维)
   - [工具与效率 (1)](posts/#工具与效率)
-  - [AI (1)](posts/#ai)
+  - [AI (2)](posts/#ai)
 
 - **关于**
   - [关于我](about.md)
+  - [博客质量宪章](charter.md)
