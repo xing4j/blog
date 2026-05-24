@@ -6,22 +6,22 @@
 
 | 日期 | 文章 | 分类 |
 |------|------|------|
-| 2026-05-22 | [AI 时代开发者必懂：大模型、智能体、Prompt 与 Vibe Coding 全解析](posts/2026-05-22-ai-terminology-guide.md) | AI |
-| 2026-05-21 | [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md) | Java 核心 |
-| 2026-05-17 | [qiankun 微前端框架：原理详解与实战指南](posts/2026-05-17-qiankun-micro-frontend.md) | Vue 前端 |
-| 2026-05-16 | [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md) | Java 核心 |
-| 2026-05-16 | [Linux 生产环境日志查询命令技巧](posts/2026-05-16-linux-log-query-tips.md) | Linux 运维 |
-| 2026-05-16 | [Spring Boot 配置体系详解：来源类型、优先级与覆盖原则](posts/2026-05-16-spring-boot-config-priority.md) | Spring 生态 |
-| 2026-05-15 | [JUnit 5 + Mockito 单元测试实战](posts/2026-05-15-junit5-mockito.md) | 性能与质量 |
-| 2026-05-15 | [Hello World — 博客搭建记录](posts/2026-05-15-hello-world.md) | 工具与效率 |
-| 2026-05-10 | [Spring Boot 实用技巧整理](posts/2026-05-10-spring-boot-tips.md) | Spring 生态 |
-| 2026-05-02 | [Code Review 清单：Java 代码审查要点](posts/2026-05-02-code-review-checklist.md) | 性能与质量 |
+| 2026-05-24 | [Kafka KRaft 模式：去 ZooKeeper 实战](posts/2026-05-24-kafka-kraft.md) | 中间件 |
+| 2026-05-24 | [Kafka 事务消息与 Exactly-Once 语义](posts/2026-05-24-kafka-exactly-once.md) | 中间件 |
+| 2026-05-24 | [Kafka 消费延迟监控与 Lag 治理](posts/2026-05-24-kafka-consumer-lag.md) | 中间件 |
+| 2026-05-24 | [Kafka 吞吐量调优实战](posts/2026-05-24-kafka-throughput-tuning.md) | 中间件 |
+| 2026-05-24 | [Kafka 高可用：副本同步与 Leader 选举](posts/2026-05-24-kafka-ha-replica.md) | 中间件 |
+| 2026-05-24 | [Kafka 存储机制：Log 文件与索引详解](posts/2026-05-24-kafka-storage.md) | 中间件 |
+| 2026-05-24 | [Kafka Consumer 原理与 Rebalance 治理](posts/2026-05-24-kafka-consumer-rebalance.md) | 中间件 |
+| 2026-05-24 | [Kafka Producer 原理与最佳实践](posts/2026-05-24-kafka-producer.md) | 中间件 |
+| 2026-05-24 | [Kafka 整体架构深度解析](posts/2026-05-24-kafka-architecture.md) | 中间件 |
+| 2026-05-24 | [Kafka 核心概念与快速上手](posts/2026-05-24-kafka-quickstart.md) | 中间件 |
 ## 🏷️ 分类
 
 - [Java 核心 (12 篇)](posts/#java-核心)
 - [Spring 生态 (10 篇)](posts/#spring-生态)
 - [数据库 (10 篇)](posts/#数据库)
-- [中间件 (5 篇)](posts/#中间件)
+- [中间件 (15 篇)](posts/#中间件)
 - [微服务 (6 篇)](posts/#微服务)
 - [Vue 前端 (6 篇)](posts/#vue-前端)
 - [DevOps (8 篇)](posts/#devops)

@@ -1,6 +1,6 @@
 # 📚 文章归档
 
-> 共 75 篇文章
+> 共 85 篇文章
 
 ## Java 核心
 
@@ -45,6 +45,16 @@
 
 ## 中间件
 
+- [Kafka KRaft 模式：去 ZooKeeper 实战](posts/2026-05-24-kafka-kraft.md) — `2026-05-24`
+- [Kafka 事务消息与 Exactly-Once 语义](posts/2026-05-24-kafka-exactly-once.md) — `2026-05-24`
+- [Kafka 消费延迟监控与 Lag 治理](posts/2026-05-24-kafka-consumer-lag.md) — `2026-05-24`
+- [Kafka 吞吐量调优实战](posts/2026-05-24-kafka-throughput-tuning.md) — `2026-05-24`
+- [Kafka 高可用：副本同步与 Leader 选举](posts/2026-05-24-kafka-ha-replica.md) — `2026-05-24`
+- [Kafka 存储机制：Log 文件与索引详解](posts/2026-05-24-kafka-storage.md) — `2026-05-24`
+- [Kafka Consumer 原理与 Rebalance 治理](posts/2026-05-24-kafka-consumer-rebalance.md) — `2026-05-24`
+- [Kafka Producer 原理与最佳实践](posts/2026-05-24-kafka-producer.md) — `2026-05-24`
+- [Kafka 整体架构深度解析](posts/2026-05-24-kafka-architecture.md) — `2026-05-24`
+- [Kafka 核心概念与快速上手](posts/2026-05-24-kafka-quickstart.md) — `2026-05-24`
 - [API 幂等性设计：Token 机制与去重方案](posts/2025-07-19-api-idempotency.md) — `2025-07-19`
 - [RocketMQ 延迟消息与事务消息原理](posts/2025-06-12-rocketmq-delay-transaction.md) — `2025-06-12`
 - [Nginx 实战：反向代理、负载均衡与限流](posts/2025-03-01-nginx-config.md) — `2025-03-01`
