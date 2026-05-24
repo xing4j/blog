@@ -1,6 +1,34 @@
 ﻿# Spring Bean 的完整生命周期：从出生到销毁的 14 步
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - 👉 **SB-02 Spring Bean 生命周期深度解析（本文）**
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐⭐ 进阶｜**阅读时长**：约 15 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2024-07-27 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
+
+## 导读
 
 面试常问"Spring Bean 的生命周期"，很多人只能说出"实例化→依赖注入→初始化→销毁"四步。实际上完整流程有 14 个关键节点，这些扩展点是框架集成（MyBatis、Dubbo、Nacos）的基础，也是排查 Bean 初始化顺序问题的关键。
 
@@ -227,15 +255,39 @@ public class TaskService {
 ```
 ---
 
-## 六、总结与延伸
+## 六、踩坑总结
 
-**完整生命周期 14 步速记**：
-- **容器初始化期**：BeanDefinitionRegistryPostProcessor → BeanFactoryPostProcessor
-- **Bean 创建期**：实例化 → 属性注入 → Aware 回调 → BeanPostProcessor.before → 初始化（@PostConstruct/afterPropertiesSet/initMethod）→ BeanPostProcessor.after（AOP代理）
-- **销毁期**：@PreDestroy / DisposableBean.destroy()
+❌ **在构造函数中调用 `@Autowired` 注入的依赖，触发 NullPointerException**
 
-**延伸阅读方向**：
-- Spring AOP 原理：AbstractAutoProxyCreator 作为 BeanPostProcessor 生成代理的完整流程
-- Spring 循环依赖：三级缓存如何解决 A→B→A 的构造循环引用
-- @Lazy 注解：延迟 Bean 初始化，打破循环依赖的另一种方式
-- Spring 事件机制：ApplicationEvent + @EventListener 实现 Bean 间的解耦通信
+✅ 字段注入（`@Autowired`）在构造函数之后、`@PostConstruct` 之前执行。构造函数执行时依赖尚未注入。解决方案：将初始化逻辑移到 `@PostConstruct` 方法中，或改为构造器注入（推荐，依赖在构造时传入）。
+
+❌ **`BeanPostProcessor` 实现类中 `@Autowired` 了普通 Service，导致该 Service 无法生成 AOP 代理**
+
+✅ `BeanPostProcessor` 在容器启动早期初始化，其依赖的 Bean 会被提前实例化，可能跳过后续注册的 AOP `BeanPostProcessor`。解决方案：在 `BeanPostProcessor` 中使用 `@Lazy` 延迟注入，或在方法内通过 `ApplicationContext.getBean()` 懒获取依赖。
+
+---
+
+## 七、文章小结
+
+- Bean 完整生命周期有 14 个关键节点，分为容器初始化期、Bean 创建期（实例化→属性注入→Aware 回调→初始化）、销毁期
+- 三种初始化方式执行顺序：`@PostConstruct` → `afterPropertiesSet()` → `initMethod`，推荐 `@PostConstruct`（低侵入）
+- `BeanPostProcessor.postProcessAfterInitialization()` 是 AOP 代理生成时机，返回值就是最终注入到其他 Bean 的对象
+- `BeanFactoryPostProcessor` 在所有 Bean 实例化之前执行，可修改 `BeanDefinition` 元数据（如 PropertyPlaceholderConfigurer）
+- `BeanPostProcessor` 的 `@Autowired` 依赖会导致被依赖的 Bean 提前实例化，可能绕过 AOP 代理，需用 `@Lazy` 避免
+
+---
+
+## 八、思考题
+
+1. Bean A 和 Bean B 互相依赖（字段注入），Spring 的三级缓存是如何解决这个问题的？`BeanPostProcessor` 在哪一步生成 AOP 代理？
+
+2. `@PostConstruct` 方法中调用了一个标注了 `@Async` 的方法，结果发现异步没有生效，为什么？如何修复？
+
+---
+
+## 参考资料
+
+> 1. Spring Framework 源码：`AbstractAutowireCapableBeanFactory.doCreateBean()`（版本：6.1）
+> 2. [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> 3. [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> 4. [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)

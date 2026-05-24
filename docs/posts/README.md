@@ -1,6 +1,6 @@
 # 📚 文章归档
 
-> 共 85 篇文章
+> 共 100 篇文章
 
 ## Java 核心
 
@@ -19,16 +19,33 @@
 
 ## Spring 生态
 
-- [Spring Boot 配置体系详解：来源类型、优先级与覆盖原则](posts/2026-05-16-spring-boot-config-priority.md) — `2026-05-16`
+> 📚 **「Spring Boot 原理与实战」系列（22 篇）**
+
+- [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](posts/2026-05-24-spring-ioc-container.md) — `2026-05-24`
+- [SB-02 Spring Bean 生命周期深度解析](posts/2024-07-27-spring-bean-lifecycle.md) — `2024-07-27`
+- [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](posts/2026-05-24-spring-mvc-dispatcher.md) — `2026-05-24`
+- [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](posts/2026-05-24-spring-transaction-propagation.md) — `2026-05-24`
+- [SB-05 Spring 事务失效的 8 种场景](posts/2024-06-02-spring-transaction-failure.md) — `2024-06-02`
+- [SB-06 Spring AOP 代理机制：JDK vs CGLIB](posts/2024-08-22-spring-aop-proxy.md) — `2024-08-22`
+- [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](posts/2026-05-24-spring-boot-startup.md) — `2026-05-24`
+- [SB-08 Spring Boot 自动装配原理深度解析](posts/2024-10-27-spring-boot-autoconfigure.md) — `2024-10-27`
+- [SB-09 Spring Boot 配置体系详解](posts/2026-05-16-spring-boot-config-priority.md) — `2026-05-16`
+- [SB-10 Spring Boot 条件装配：@Conditional 体系](posts/2026-05-24-spring-boot-conditional.md) — `2026-05-24`
+- [SB-11 Spring 循环依赖：三级缓存的设计原理](posts/2026-05-24-spring-circular-dependency.md) — `2026-05-24`
+- [SB-12 Filter、Interceptor、AOP 三者对比与选型](posts/2026-05-24-spring-filter-interceptor-aop.md) — `2026-05-24`
+- [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](posts/2026-05-24-spring-events.md) — `2026-05-24`
+- [SB-14 Spring @Async 异步编程：原理与线程池配置](posts/2026-05-24-spring-async.md) — `2026-05-24`
+- [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](posts/2026-05-24-spring-extension-points.md) — `2026-05-24`
+- [SB-16 Spring Boot 全局异常处理与参数校验](posts/2026-05-24-spring-exception-handler.md) — `2026-05-24`
+- [SB-17 Spring Boot 多数据源：动态路由与跨库事务](posts/2026-05-24-spring-boot-multi-datasource.md) — `2026-05-24`
+- [SB-18 Spring Boot Actuator：健康检查与自定义端点](posts/2026-05-24-spring-boot-actuator.md) — `2026-05-24`
+- [SB-19 Spring Boot 自定义 Starter：从设计到发布](posts/2026-05-24-spring-boot-custom-starter.md) — `2026-05-24`
+- [SB-20 Spring Security 认证授权完整流程](posts/2024-12-23-spring-security-auth.md) — `2024-12-23`
+- [SB-21 Spring Cache 注解与 Redis 缓存集成](posts/2025-04-04-spring-cache.md) — `2025-04-04`
+- [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](posts/2026-05-24-spring-boot-testing.md) — `2026-05-24`
 - [Spring Boot 实用技巧整理](posts/2026-05-10-spring-boot-tips.md) — `2026-05-10`
 - [MyBatis-Plus 多租户方案实战](posts/2025-08-17-mybatis-plus-tenant.md) — `2025-08-17`
 - [MyBatis 一级缓存与二级缓存原理](posts/2025-05-20-mybatis-cache.md) — `2025-05-20`
-- [Spring Cache 注解与 Redis 缓存集成](posts/2025-04-04-spring-cache.md) — `2025-04-04`
-- [Spring Security 认证授权完整流程](posts/2024-12-23-spring-security-auth.md) — `2024-12-23`
-- [Spring Boot 自动装配原理深度解析](posts/2024-10-27-spring-boot-autoconfigure.md) — `2024-10-27`
-- [Spring AOP 代理机制：JDK vs CGLIB](posts/2024-08-22-spring-aop-proxy.md) — `2024-08-22`
-- [Spring Bean 生命周期深度解析](posts/2024-07-27-spring-bean-lifecycle.md) — `2024-07-27`
-- [Spring 事务失效的 8 种场景](posts/2024-06-02-spring-transaction-failure.md) — `2024-06-02`
 
 ## 数据库
 

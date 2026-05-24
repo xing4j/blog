@@ -1,6 +1,34 @@
 ﻿# Spring 事务失效的 8 大场景：踩过才懂的坑
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - 👉 **SB-05 Spring 事务失效的 8 种场景（本文）**
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐⭐ 进阶｜**阅读时长**：约 18 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2024-06-02 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
+
+## 导读
 
 代码加了 @Transactional，但数据库回滚没生效——这是 Spring 事务失效最典型的求助场景。表面是注解问题，根源是对 Spring AOP 代理机制和事务传播规则的误解。本文梳理 8 个高频失效场景，每个都给出可重现的反例和修复方案。
 
@@ -204,22 +232,45 @@ public class BService {
 
 ---
 
-## 四、总结与延伸
+## 四、踩坑总结
 
-**8 个失效场景速记**：
-1. 同类内部调用（绕过代理）
-2. 非 public 方法（代理无法拦截）
-3. 异常类型不匹配（默认只回滚 RuntimeException）
-4. 异常被 catch 吞掉
-5. Bean 未被 Spring 管理
-6. 多线程调用（事务不跨线程）
-7. 数据库引擎不支持事务（MyISAM）
-8. 传播属性配置不当
+❌ **加了 `@Transactional` 的方法在同类内部被调用，事务不回滚**
 
-**一条规则防 80% 的坑**：始终加 @Transactional(rollbackFor = Exception.class)，避免跨类内部调用。
+✅ 同类内部调用走的是 `this.method()`，绕过了 Spring AOP 代理，事务拦截器没有介入。修复：①通过 `ApplicationContext.getBean()` 或 `AopContext.currentProxy()` 获取代理对象后调用；②将被调用方法抽取到独立 Service 类中。
 
-**延伸阅读方向**：
-- Spring AOP 代理机制：JDK 动态代理 vs CGLIB，选择时机与限制
-- 分布式事务：Seata AT 模式如何实现跨服务的事务一致性
-- 编程式事务 TransactionTemplate：复杂场景下更可控的事务管理
-- 数据库 MVCC：理解 MySQL InnoDB 如何实现读已提交/可重复读
+❌ **`@Transactional` 方法内部 catch 了异常后打日志，认为已经处理好了，但事务实际上已经被标记回滚（`UnexpectedRollbackException`）**
+
+✅ 内层方法（`REQUIRED` 传播）抛出异常后，事务被全局标记为 `rollbackOnly`，即使外层 catch 了异常，最终提交时仍会触发 `UnexpectedRollbackException`。如果内层的异常是预期内的，应使用 `REQUIRES_NEW` 让内层在独立事务中运行，或手动调用 `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()` 显式控制。
+
+---
+
+## 五、文章小结
+
+- 8 个失效场景的根源：要么代理没被调用（内部调用/非 Bean），要么异常没触达框架（catch 吞掉/类型不匹配），要么场景不支持（多线程/MyISAM/传播属性）
+- 生产最佳实践：统一使用 `@Transactional(rollbackFor = Exception.class)`，避免受检异常不回滚
+- 同类内部调用是最高频的失效原因，根源是 Spring AOP 基于代理而非字节码织入
+- 多线程场景下事务通过 ThreadLocal 绑定当前线程，子线程必须独立管理事务
+- `PROPAGATION_NOT_SUPPORTED` 挂起当前事务，误用会导致预期外的非事务行为
+
+---
+
+## 六、思考题
+
+1. `@Transactional(propagation = REQUIRES_NEW)` 方法抛出异常，外层 `@Transactional` 方法 catch 了这个异常，外层事务会回滚吗？为什么？
+
+2. 下面的代码中，`asyncMethod()` 抛出异常，`mainMethod()` 的事务会回滚吗？
+   ```java
+   @Transactional
+   public void mainMethod() {
+       orderDao.save(order);
+       taskExecutor.execute(() -> asyncMethod()); // 另一个线程执行
+   }
+   ```
+
+---
+
+## 参考资料
+
+> 1. [Spring 官方文档 - Transaction Propagation](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html)
+> 2. [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> 3. [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)

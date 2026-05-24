@@ -1,6 +1,34 @@
 ﻿# Spring Boot 自动装配：零配置背后的魔法
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - 👉 **SB-08 Spring Boot 自动装配原理深度解析（本文）**
+> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐⭐⭐ 深度｜**阅读时长**：约 20 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2024-10-27 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
+
+## 导读
 
 加一个 spring-boot-starter-data-redis 依赖，不写任何配置类，Redis 连接池就自动初始化好了。Spring Boot 的自动装配让"约定大于配置"成为现实。理解这套机制，才能在出现问题时知道如何调试，以及如何编写自己的 Starter。
 
@@ -229,15 +257,39 @@ public class MyProperties {
 ```
 ---
 
-## 六、总结与延伸
+## 六、踩坑总结
 
-**核心要点**：
-- 自动装配 = @EnableAutoConfiguration + SPI（spring.factories/AutoConfiguration.imports）+ @Conditional 过滤
-- @ConditionalOnMissingBean 保证用户自定义 Bean 优先级高于自动配置
-- 自定义 Starter 三要素：AutoConfiguration 类 + Properties 类 + SPI 注册文件
+❌ **自定义 `@Bean` 与 Starter 的 `@Bean` 冲突，报 `BeanDefinitionOverrideException`**
 
-**延伸阅读方向**：
-- Spring Boot Actuator：通过 /actuator/conditions 端点在线查看条件评估报告
-- Spring Boot 3.x 变化：spring.factories 被 AutoConfiguration.imports 替代，更高效
-- ImportSelector vs ImportBeanDefinitionRegistrar：两种动态注册 Bean 的方式
-- GraalVM Native Image：自动装配在 AOT 编译期的静态分析与优化
+✅ Spring Boot 2.1+ 默认禁止 Bean 覆盖（`spring.main.allow-bean-definition-overriding=false`）。根本原因通常是 AutoConfiguration 没有 `@ConditionalOnMissingBean`，或者用户定义的 Bean 与自动配置 Bean 同名。正确做法：不要依赖 Bean 覆盖，在 AutoConfiguration 的 `@Bean` 方法上加 `@ConditionalOnMissingBean`，用户定义 Bean 后自动装配不再注册。
+
+❌ **`@ConfigurationProperties` 类的属性值为 null，配置文件中明明写了值**
+
+✅ 两个常见原因：①`@ConfigurationProperties` 类没有被注册为 Bean（缺少 `@Component` 或没有在 `@Configuration` 上加 `@EnableConfigurationProperties(MyProperties.class)`）；②配置文件 key 大小写问题（Spring Boot 会自动进行 relaxed binding，但对象嵌套时需要检查前缀是否完全匹配）。
+
+---
+
+## 七、文章小结
+
+- 自动装配核心链路：`@EnableAutoConfiguration` → `AutoConfigurationImportSelector` → SPI 文件 → `@Conditional` 过滤 → 注册 Bean
+- Spring Boot 3.x 使用 `META-INF/spring/AutoConfiguration.imports` 替代 `spring.factories`，格式更简洁
+- `@ConditionalOnMissingBean` 是 Starter 设计的核心原则——用户定义 Bean 优先于自动配置
+- 通过 `/actuator/conditions`（需引入 Actuator）可在运行时查看每个条件的评估结果，是自动装配调试的利器
+- 自动装配顺序可用 `@AutoConfigureAfter/@AutoConfigureBefore/@AutoConfigureOrder` 控制
+
+---
+
+## 八、思考题
+
+1. `@ConditionalOnMissingBean` 检查的时机是什么？如果 AutoConfiguration A 依赖 AutoConfiguration B 注册的 Bean，但没有配置顺序约束，会发生什么？
+
+2. Spring Boot 为什么在 3.x 将 `spring.factories` 改为 `AutoConfiguration.imports`？性能上有什么提升？
+
+---
+
+## 参考资料
+
+> 1. [Spring Boot 官方文档 - Auto-configuration](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.auto-configuration)
+> 2. Spring Boot 源码：`AutoConfigurationImportSelector`（版本：3.2）
+> 3. [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> 4. [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)

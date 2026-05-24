@@ -1,6 +1,34 @@
 ﻿# Spring Cache：声明式缓存的正确使用姿势
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - 👉 **SB-21 Spring Cache 注解与 Redis 缓存集成（本文）**
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐ 入门｜**阅读时长**：约 15 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2025-04-04 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
+
+## 导读
 
 @Cacheable 加上去，查询速度确实快了，但缓存不更新、Key 冲突、缓存雪崩接踵而至。Spring Cache 抽象层让切换 Redis/Caffeine 变得简单，但缓存的难题从来不在存取，而在一致性和失效策略。
 
@@ -209,16 +237,38 @@ public User updateUser(User user) { ... }
 ```
 ---
 
-## 六、总结与延伸
+## 六、踩坑总结
 
-**核心要点**：
-- @Cacheable：读缓存；@CachePut：写缓存；@CacheEvict：删缓存
-- Spring Cache 是缓存操作的抽象层，底层实现（Redis/Caffeine/EhCache）可一键切换
-- 内部方法调用绕过 AOP 代理，缓存不生效
-- Key 设计：用 value 区分缓存空间，Key 在同一 value 内保持唯一且一致
+❌ **`@Cacheable` 注解同类内部调用不生效，添加缓存但查询结果每次都穿透到数据库**
 
-**延伸阅读方向**：
-- Caffeine 本地缓存：高性能本地缓存，适合热点数据，与 Spring Cache 集成
-- 多级缓存架构：本地缓存（Caffeine）+ 分布式缓存（Redis）的两级方案
-- 缓存击穿/穿透/雪崩：三大缓存问题的成因与解决方案
-- Canal + MQ：数据库 binlog 订阅实现缓存自动失效，保证强一致性
+✅ Spring Cache 基于 AOP 代理，同类内部调用绕过代理，缓存注解失效。这与 `@Transactional` 同类调用失效是完全相同的原因。修复方法：将带缓存注解的方法移到独立 Bean，或通过 `ApplicationContext.getBean()` 获取代理再调用。
+
+❌ **`@CachePut` 更新了缓存，但 `@Cacheable` 读到的仍是旧数据**
+
+✅ 原因是 `@CachePut` 和 `@Cacheable` 的 Key 表达式不一致。例如 `@Cacheable(key = "#id")` 和 `@CachePut(key = "#user.id")`——如果 `id` 是方法参数而 `user.id` 是对象属性，两者虽然值相同，但如果 Key 生成策略有差异（如类型不同导致 `toString()` 不同）就会不命中。建议将 Key 逻辑提取为统一的 SpEL 表达式或常量。
+
+---
+
+## 七、文章小结
+
+- Spring Cache 的四个核心注解：`@Cacheable`（读）、`@CachePut`（写）、`@CacheEvict`（删）、`@Caching`（组合）
+- `value`（缓存空间名）+ `key`（SpEL 表达式）共同决定缓存 Key；`unless`/`condition` 控制是否缓存
+- Spring Cache 是抽象层，底层可接入 Redis/Caffeine/EhCache，引入对应 Starter 自动切换
+- 内部调用绕过 AOP 代理导致缓存不生效，与 `@Transactional` 同类问题，根因相同
+- `@CachePut` 和 `@Cacheable` 必须使用完全一致的 Key 表达式，否则更新缓存对读取无效
+
+---
+
+## 八、思考题
+
+1. `@Cacheable` 标注的方法，如果数据库查到的结果为 `null`，会被缓存吗？如果不缓存 `null`，大量查询不存在的 key 会引发什么问题？如何解决？
+
+2. 生产环境中，多个服务实例共享同一个 Redis 缓存，某个服务 A 更新了数据库并用 `@CacheEvict` 清除了缓存，但服务 B 的本地缓存（Caffeine）仍有旧数据，如何解决多级缓存的一致性问题？
+
+---
+
+## 参考资料
+
+> 1. [Spring 官方文档 - Cache Abstraction](https://docs.spring.io/spring-framework/reference/integration/cache.html)
+> 2. [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> 3. [2024-06-29 Redis 缓存穿透、击穿与雪崩](2024-06-29-redis-cache-problems.md)

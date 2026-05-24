@@ -1,6 +1,34 @@
 # Spring Boot 配置体系详解：来源类型、优先级与覆盖原则
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> - 👉 **SB-09 Spring Boot 配置体系详解（本文）**
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐ 入门｜**阅读时长**：约 15 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2026-05-16 &nbsp;·&nbsp; 🏷️ <span class="tag">Java</span> <span class="tag">Spring Boot</span></div>
+
+## 导读
 
 Spring Boot 提供了极为灵活的外部化配置机制，支持从多种来源读取属性，并通过明确的优先级规则决定最终生效值。本文系统梳理配置来源类型、完整优先级顺序及覆盖原则，帮助你在多环境部署时做到心中有数。
 
@@ -380,3 +408,41 @@ curl http://localhost:8080/actuator/env/server.port
 ```
 
 理解这套规则后，面对多环境部署、容器化注入、运维紧急修改等场景，就能精准判断配置的最终来源，避免"明明改了配置却不生效"的困惑。
+
+---
+
+## 踩坑总结
+
+❌ **K8s 中通过 ConfigMap 注入了环境变量 `SERVER_PORT=9090`，但应用仍然监听 8080**
+
+✅ Spring Boot 的 relaxed binding 会将环境变量 `SERVER_PORT` 映射到 `server.port`，但有时候 K8s Pod 的环境变量注入顺序或命名不对。排查步骤：①访问 `/actuator/env/server.port` 查看该属性来自哪个 source；②确认环境变量名符合 Spring Boot 的 relaxed binding 规则（大写 + 下划线替换点和连字符）。
+
+❌ **激活了 `spring.profiles.active=prod`，但 `application-prod.yml` 中的配置没有覆盖 `application.yml` 中相同的 key**
+
+✅ Profile 专属配置文件（优先级 12/13）与通用配置文件（优先级 14/15）会**合并**，相同 key 时专属优先。如果没有生效，检查：①两个文件是否在同一位置（都在 jar 内或都在 jar 外）；②key 拼写是否完全一致；③是否在 Nacos 等配置中心也有同名 key 以更高优先级覆盖了。
+
+---
+
+## 文章小结
+
+- Spring Boot 配置优先级遵循"越外越优先，越动态越优先"原则，共 17 个级别
+- 命令行参数（`--key=value`）优先级最高，适合运维临时修改；默认属性（`setDefaultProperties`）优先级最低
+- Profile 专属配置与通用配置是**合并关系**，相同 key 时专属优先，而非完全覆盖
+- 多个 Profile 同时激活时，后声明的优先级更高
+- `/actuator/env` 端点可直接查看每个属性来自哪个 source，是排查配置不生效的最快方法
+
+---
+
+## 思考题
+
+1. 你的应用用了 `@PropertySource("classpath:custom.properties")` 加载了一个自定义配置文件。当 `application.yml` 和 `custom.properties` 中有相同的 key，哪个生效？为什么？
+
+2. Nacos 配置中心的属性属于哪种 `PropertySource`？在 Spring Boot 标准 17 个级别中处于哪个位置？如何验证？
+
+---
+
+## 参考资料
+
+> 1. [Spring Boot 官方文档 - Externalized Configuration](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config)
+> 2. [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> 3. [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)

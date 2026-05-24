@@ -1,6 +1,34 @@
 ﻿# Spring AOP 代理机制：从 @Aspect 到字节码增强
 
+> 📚 **本文属于「Spring Boot 原理与实战」系列**
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> - 👉 **SB-06 Spring AOP 代理机制：JDK vs CGLIB（本文）**
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+
+**深度等级**：⭐⭐ 进阶｜**阅读时长**：约 18 分钟｜**分类**：Spring 生态
+
 <div class="post-meta">📅 2024-08-22 &nbsp;·&nbsp; 🏷️ <span class="tag">Spring</span></div>
+
+## 导读
 
 日志切面加了、方法执行时间打印了，但突然发现同类内方法调用时切面没生效。理解 Spring AOP 的代理实现原理，才能知道它能做什么，不能做什么，以及什么情况下该换用 AspectJ 编译时织入。
 
@@ -233,16 +261,39 @@ public class TransactionAspect { ... }
 
 ---
 
-## 七、总结与延伸
+## 七、踩坑总结
 
-**核心要点**：
-- Spring AOP 基于动态代理（JDK/CGLIB），运行时生成代理对象
-- JDK 代理需要接口，CGLIB 通过继承（Spring Boot 2+ 默认 CGLIB）
-- **内部方法调用不经过代理**，是切面不生效的首要原因
-- 五种通知类型：@Before/@After/@AfterReturning/@AfterThrowing/@Around
+❌ **切面不生效：同类内部方法 A 调用方法 B，方法 B 的 `@Around` 切面没有执行**
 
-**延伸阅读方向**：
-- AspectJ 编译时织入：彻底解决内部调用问题，适合 SDK 级别切面
-- Spring 事务实现：TransactionInterceptor 是最复杂的 AOP 应用
-- ProxyFactory API：编程式创建 AOP 代理，理解代理工厂的工作原理
-- Arthas rrace 命令：生产环境动态追踪方法调用链，AOP 的终极调试工具
+✅ Spring AOP 基于动态代理，同类内部调用走的是 `this.method()`，绕过了代理对象，切面拦截器不会介入。解决方案：①将方法 B 抽取到单独的 Bean 中；②通过 `AopContext.currentProxy()` 获取代理对象调用（需配置 `exposeProxy = true`）；③真正需要内部调用拦截时，用 AspectJ 编译时织入。
+
+❌ **`@Order` 设置了切面顺序，但多个切面在同一个方法上的执行顺序不符合预期**
+
+✅ `@Order` 数字越小优先级越高，但只控制同一切入点多个切面间的**外层/内层**关系：外层切面先执行 Before，后执行 After。事务切面必须是最内层（离目标方法最近），日志/鉴权切面在外层——所以事务切面的 `@Order` 值应最大（或不设置，默认 `Integer.MAX_VALUE`）。
+
+---
+
+## 八、文章小结
+
+- Spring AOP 基于运行时代理（JDK 接口代理 / CGLIB 子类代理），Spring Boot 2+ 默认使用 CGLIB
+- JDK 代理要求实现接口，CGLIB 通过继承（`final` 类和方法无法被代理）
+- 五种通知类型：`@Before` / `@After` / `@AfterReturning` / `@AfterThrowing` / `@Around`（最强大）
+- 内部方法调用是切面不生效的首要原因，根本原因是调用路径绕过了代理对象
+- `@Order` 控制切面优先级，值越小越靠外；事务切面应是最内层，避免事务在鉴权前开启
+
+---
+
+## 九、思考题
+
+1. `@Around` 通知中调用了 `pjp.proceed()`，而 `@Before` 通知中抛出了异常，`@Around` 能捕获到这个异常吗？`@After` 通知会执行吗？
+
+2. Spring Boot 默认使用 CGLIB 代理，但如果目标类是 `final` 的，会怎样？有什么解决方案？
+
+---
+
+## 参考资料
+
+> 1. [Spring 官方文档 - Aspect Oriented Programming with Spring](https://docs.spring.io/spring-framework/reference/core/aop.html)
+> 2. [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
+> 3. [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> 4. [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
