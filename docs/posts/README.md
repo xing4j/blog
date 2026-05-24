@@ -1,6 +1,6 @@
 # 📚 文章归档
 
-> 共 74 篇文章
+> 共 75 篇文章
 
 ## Java 核心
 
@@ -113,5 +113,6 @@
 
 ## AI
 
+- [SDD、宪章与 Skill：AI 辅助开发的工程方法论全景](posts/2026-05-22-sdd-ai-charter-skills.md) — `2026-05-22`
 - [AI 时代开发者必懂：大模型、智能体、Prompt 与 Vibe Coding 全解析](posts/2026-05-22-ai-terminology-guide.md) — `2026-05-22`
 
