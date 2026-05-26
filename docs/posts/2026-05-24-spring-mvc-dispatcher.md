@@ -1,28 +1,28 @@
-# Spring MVC 请求处理：DispatcherServlet 与九大组件
+﻿# Spring MVC 请求处理：DispatcherServlet 与九大组件
 
 > 📚 **本文属于「Spring Boot 原理与实战」系列**
-> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
-> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](posts/2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](posts/2024-07-27-spring-bean-lifecycle.md)
 > - 👉 **SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件（本文）**
-> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
-> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
-> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
-> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
-> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
-> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
-> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
-> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
-> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
-> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
-> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
-> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
-> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
-> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](2026-05-24-spring-boot-multi-datasource.md)
-> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
-> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
-> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
-> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
-> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](posts/2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](posts/2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](posts/2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](posts/2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](posts/2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](posts/2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](posts/2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](posts/2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](posts/2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](posts/2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](posts/2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](posts/2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](posts/2026-05-24-spring-exception-handler.md)
+> - [SB-17 Spring Boot 多数据源：动态路由与跨库事务](posts/2026-05-24-spring-boot-multi-datasource.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](posts/2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](posts/2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](posts/2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](posts/2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](posts/2026-05-24-spring-boot-testing.md)
 
 **深度等级**：⭐ 入门｜**阅读时长**：约 18 分钟｜**分类**：Spring 生态
 
@@ -139,7 +139,7 @@ Handler 可能是 `@Controller` 方法、`HttpRequestHandler`、`Servlet` 等不
 | `DefaultHandlerExceptionResolver` | 处理 Spring MVC 内置异常（如 400/405/415）|
 
 三个实现按优先级顺序尝试，如果都处理不了则抛出给 Servlet 容器。
-`@ControllerAdvice` + `@ExceptionHandler` 是生产中最常用的统一异常处理方式（详见 [SB-16](2026-05-24-spring-exception-handler.md)）。
+`@ControllerAdvice` + `@ExceptionHandler` 是生产中最常用的统一异常处理方式（详见 [SB-16](posts/2026-05-24-spring-exception-handler.md)）。
 
 ### 3.4 ViewResolver 与 MessageConverters
 
@@ -273,7 +273,7 @@ public class OrderController {
 
 ## 八、思考题
 
-1. Spring MVC 的 `HandlerInterceptor` 和 Servlet `Filter` 都能拦截请求，两者的执行顺序是什么？实现原理有什么本质区别？（提示：见 [SB-12](2026-05-24-spring-filter-interceptor-aop.md)）
+1. Spring MVC 的 `HandlerInterceptor` 和 Servlet `Filter` 都能拦截请求，两者的执行顺序是什么？实现原理有什么本质区别？（提示：见 [SB-12](posts/2026-05-24-spring-filter-interceptor-aop.md)）
 
 2. 当同一个路径有多个 `@RequestMapping` 方法（比如 `@GetMapping` 和 `@PostMapping`），`RequestMappingHandlerMapping` 是如何精确匹配的？如果路径相同、Method 也相同会怎样？
 
@@ -283,5 +283,5 @@ public class OrderController {
 
 > 1. [Spring MVC 官方文档 - DispatcherServlet](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet.html)
 > 2. Spring Framework 源码：`DispatcherServlet`、`RequestMappingHandlerAdapter`（版本：6.1）
-> 3. [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
-> 4. [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> 3. [SB-12 Filter、Interceptor、AOP 三者对比与选型](posts/2026-05-24-spring-filter-interceptor-aop.md)
+> 4. [SB-16 Spring Boot 全局异常处理与参数校验](posts/2026-05-24-spring-exception-handler.md)

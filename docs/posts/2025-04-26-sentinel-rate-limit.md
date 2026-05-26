@@ -3,18 +3,18 @@
 <div class="post-meta">📅 2025-04-26 &nbsp;·&nbsp; 🏷️ <span class="tag">Sentinel</span> <span class="tag">微服务</span></div>
 
 > 📚 **本文属于「Spring Cloud 微服务实战」系列**
-> - [SC-01 Spring Cloud 微服务全景：架构演进与组件选型](2025-06-27-spring-cloud-overview.md)
-> - [SC-02 Nacos 服务注册与配置中心实战](2025-02-15-nacos-registry-config.md)
-> - [SC-03 Spring Cloud Gateway：路由、过滤器与灰度发布](2026-05-26-spring-cloud-gateway.md)
-> - [SC-04 OpenFeign 深度实战：声明式调用、拦截器与熔断](2025-09-06-openfeign-timeout-retry.md)
-> - [SC-05 Spring Cloud LoadBalancer：负载均衡原理与自定义策略](2026-05-26-spring-cloud-loadbalancer.md)
+> - [SC-01 Spring Cloud 微服务全景：架构演进与组件选型](posts/2025-06-27-spring-cloud-overview.md)
+> - [SC-02 Nacos 服务注册与配置中心实战](posts/2025-02-15-nacos-registry-config.md)
+> - [SC-03 Spring Cloud Gateway：路由、过滤器与灰度发布](posts/2026-05-26-spring-cloud-gateway.md)
+> - [SC-04 OpenFeign 深度实战：声明式调用、拦截器与熔断](posts/2025-09-06-openfeign-timeout-retry.md)
+> - [SC-05 Spring Cloud LoadBalancer：负载均衡原理与自定义策略](posts/2026-05-26-spring-cloud-loadbalancer.md)
 > - 👉 **SC-06 Sentinel 流量防护：限流、熔断与热点规则（本文）**
-> - [SC-07 分布式链路追踪：Micrometer Tracing + SkyWalking 实战](2026-05-26-spring-cloud-tracing.md)
-> - [SC-08 微服务安全：Gateway + JWT 统一鉴权方案](2026-05-26-spring-cloud-security.md)
-> - [SC-09 Seata 分布式事务：AT/TCC/Saga 三模式对比实战](2025-01-11-seata-distributed-transaction.md)
-> - [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](2026-05-26-nacos-config-advanced.md)
-> - [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](2026-05-26-spring-cloud-observability.md)
-> - [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](2026-05-26-microservice-best-practices.md)
+> - [SC-07 分布式链路追踪：Micrometer Tracing + SkyWalking 实战](posts/2026-05-26-spring-cloud-tracing.md)
+> - [SC-08 微服务安全：Gateway + JWT 统一鉴权方案](posts/2026-05-26-spring-cloud-security.md)
+> - [SC-09 Seata 分布式事务：AT/TCC/Saga 三模式对比实战](posts/2025-01-11-seata-distributed-transaction.md)
+> - [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](posts/2026-05-26-nacos-config-advanced.md)
+> - [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](posts/2026-05-26-spring-cloud-observability.md)
+> - [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](posts/2026-05-26-microservice-best-practices.md)
 
 **深度等级**：⭐⭐ 进阶｜**阅读时长**：约 20 分钟｜**分类**：微服务
 

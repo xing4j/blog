@@ -1,16 +1,16 @@
 ﻿# K-07 Kafka 吞吐量调优实战
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
-> - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
-> - [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
-> - [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
-> - [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
-> - [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
-> - [K-06 高可用：副本同步与 Leader 选举](2026-05-24-kafka-ha-replica.md)
+> - [K-01 Kafka 核心概念与快速上手](posts/2026-05-24-kafka-quickstart.md)
+> - [K-02 Kafka 整体架构深度解析](posts/2026-05-24-kafka-architecture.md)
+> - [K-03 Producer 原理与最佳实践](posts/2026-05-24-kafka-producer.md)
+> - [K-04 Consumer 原理与 Rebalance 治理](posts/2026-05-24-kafka-consumer-rebalance.md)
+> - [K-05 存储机制：Log 文件与索引详解](posts/2026-05-24-kafka-storage.md)
+> - [K-06 高可用：副本同步与 Leader 选举](posts/2026-05-24-kafka-ha-replica.md)
 > - 👉 **K-07 吞吐量调优实战（本文）**
-> - [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
-> - [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
-> - [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
+> - [K-08 消费延迟监控与 Lag 治理](posts/2026-05-24-kafka-consumer-lag.md)
+> - [K-09 事务消息与 Exactly-Once 语义](posts/2026-05-24-kafka-exactly-once.md)
+> - [K-10 KRaft 模式：去 ZooKeeper 实战](posts/2026-05-24-kafka-kraft.md)
 
 **深度等级**：⭐⭐⭐ 深度｜**阅读时长**：约 30 分钟｜**分类**：中间件
 
@@ -304,4 +304,4 @@ export KAFKA_JVM_PERFORMANCE_OPTS="
 > 1. [Apache Kafka 官方文档 3.7 - Operations](https://kafka.apache.org/37/documentation/#operations)
 > 2. [Benchmarking Apache Kafka: 2 Million Writes Per Second](https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines) — LinkedIn Engineering
 > 3. [Kafka Producer Performance Tuning](https://developer.confluent.io/tutorials/kafka-producer-throughput/kafka.html) — Confluent
-> 4. [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
+> 4. [K-05 存储机制：Log 文件与索引详解](posts/2026-05-24-kafka-storage.md)

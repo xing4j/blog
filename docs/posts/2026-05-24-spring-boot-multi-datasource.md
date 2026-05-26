@@ -1,28 +1,28 @@
-# Spring Boot 多数据源：动态路由与跨库事务
+﻿# Spring Boot 多数据源：动态路由与跨库事务
 
 > 📚 **本文属于「Spring Boot 原理与实战」系列**
-> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](2026-05-24-spring-ioc-container.md)
-> - [SB-02 Spring Bean 生命周期深度解析](2024-07-27-spring-bean-lifecycle.md)
-> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](2026-05-24-spring-mvc-dispatcher.md)
-> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
-> - [SB-05 Spring 事务失效的 8 种场景](2024-06-02-spring-transaction-failure.md)
-> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
-> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](2026-05-24-spring-boot-startup.md)
-> - [SB-08 Spring Boot 自动装配原理深度解析](2024-10-27-spring-boot-autoconfigure.md)
-> - [SB-09 Spring Boot 配置体系详解](2026-05-16-spring-boot-config-priority.md)
-> - [SB-10 Spring Boot 条件装配：@Conditional 体系](2026-05-24-spring-boot-conditional.md)
-> - [SB-11 Spring 循环依赖：三级缓存的设计原理](2026-05-24-spring-circular-dependency.md)
-> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](2026-05-24-spring-filter-interceptor-aop.md)
-> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](2026-05-24-spring-events.md)
-> - [SB-14 Spring @Async 异步编程：原理与线程池配置](2026-05-24-spring-async.md)
-> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](2026-05-24-spring-extension-points.md)
-> - [SB-16 Spring Boot 全局异常处理与参数校验](2026-05-24-spring-exception-handler.md)
+> - [SB-01 Spring IoC 容器：BeanFactory 体系与 BeanDefinition 注册](posts/2026-05-24-spring-ioc-container.md)
+> - [SB-02 Spring Bean 生命周期深度解析](posts/2024-07-27-spring-bean-lifecycle.md)
+> - [SB-03 Spring MVC 请求处理：DispatcherServlet 与九大组件](posts/2026-05-24-spring-mvc-dispatcher.md)
+> - [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](posts/2026-05-24-spring-transaction-propagation.md)
+> - [SB-05 Spring 事务失效的 8 种场景](posts/2024-06-02-spring-transaction-failure.md)
+> - [SB-06 Spring AOP 代理机制：JDK vs CGLIB](posts/2024-08-22-spring-aop-proxy.md)
+> - [SB-07 Spring Boot 启动流程：SpringApplication.run 全链路](posts/2026-05-24-spring-boot-startup.md)
+> - [SB-08 Spring Boot 自动装配原理深度解析](posts/2024-10-27-spring-boot-autoconfigure.md)
+> - [SB-09 Spring Boot 配置体系详解](posts/2026-05-16-spring-boot-config-priority.md)
+> - [SB-10 Spring Boot 条件装配：@Conditional 体系](posts/2026-05-24-spring-boot-conditional.md)
+> - [SB-11 Spring 循环依赖：三级缓存的设计原理](posts/2026-05-24-spring-circular-dependency.md)
+> - [SB-12 Filter、Interceptor、AOP 三者对比与选型](posts/2026-05-24-spring-filter-interceptor-aop.md)
+> - [SB-13 Spring 事件驱动：ApplicationEvent 与监听器](posts/2026-05-24-spring-events.md)
+> - [SB-14 Spring @Async 异步编程：原理与线程池配置](posts/2026-05-24-spring-async.md)
+> - [SB-15 Spring 扩展点：BPP、BFPP 与 ImportSelector](posts/2026-05-24-spring-extension-points.md)
+> - [SB-16 Spring Boot 全局异常处理与参数校验](posts/2026-05-24-spring-exception-handler.md)
 > - 👉 **SB-17 Spring Boot 多数据源：动态路由与跨库事务（本文）**
-> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](2026-05-24-spring-boot-actuator.md)
-> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](2026-05-24-spring-boot-custom-starter.md)
-> - [SB-20 Spring Security 认证授权完整流程](2024-12-23-spring-security-auth.md)
-> - [SB-21 Spring Cache 注解与 Redis 缓存集成](2025-04-04-spring-cache.md)
-> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](2026-05-24-spring-boot-testing.md)
+> - [SB-18 Spring Boot Actuator：健康检查与自定义端点](posts/2026-05-24-spring-boot-actuator.md)
+> - [SB-19 Spring Boot 自定义 Starter：从设计到发布](posts/2026-05-24-spring-boot-custom-starter.md)
+> - [SB-20 Spring Security 认证授权完整流程](posts/2024-12-23-spring-security-auth.md)
+> - [SB-21 Spring Cache 注解与 Redis 缓存集成](posts/2025-04-04-spring-cache.md)
+> - [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](posts/2026-05-24-spring-boot-testing.md)
 
 **深度等级**：⭐⭐⭐ 深度｜**阅读时长**：约 25 分钟｜**分类**：Spring 生态
 
@@ -262,7 +262,7 @@ Atomikos 通过 XA 协议的两阶段提交（2PC）保证跨数据源的强一�
 
 ❌ **多线程场景下 `ThreadLocal` 数据源 key 污染：线程池复用线程，上个任务设置的 key 被下一个任务读取**
 
-✅ 在 AOP 的 `finally` 块中必须调用 `DataSourceContextHolder.clear()`，确保方法执行完毕后清除 ThreadLocal，而不是简单地设置回去。如果有线程池 + 异步场景，需要传播 ThreadLocal（参考 [SB-14](2026-05-24-spring-async.md)）。
+✅ 在 AOP 的 `finally` 块中必须调用 `DataSourceContextHolder.clear()`，确保方法执行完毕后清除 ThreadLocal，而不是简单地设置回去。如果有线程池 + 异步场景，需要传播 ThreadLocal（参考 [SB-14](posts/2026-05-24-spring-async.md)）。
 
 ---
 
@@ -288,5 +288,5 @@ Atomikos 通过 XA 协议的两阶段提交（2PC）保证跨数据源的强一�
 
 > 1. [Spring 官方文档 - AbstractRoutingDataSource](https://docs.spring.io/spring-framework/reference/data-access/jdbc/datasource.html#jdbc-AbstractRoutingDataSource)
 > 2. Spring Framework 源码：`AbstractRoutingDataSource`、`DataSourceTransactionManager`（版本：6.1）
-> 3. [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](2026-05-24-spring-transaction-propagation.md)
-> 4. [SB-06 Spring AOP 代理机制：JDK vs CGLIB](2024-08-22-spring-aop-proxy.md)
+> 3. [SB-04 Spring 事务传播行为：7 种传播级别与底层实现](posts/2026-05-24-spring-transaction-propagation.md)
+> 4. [SB-06 Spring AOP 代理机制：JDK vs CGLIB](posts/2024-08-22-spring-aop-proxy.md)
