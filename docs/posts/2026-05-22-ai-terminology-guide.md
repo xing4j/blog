@@ -199,16 +199,16 @@ ReAct（Reasoning + Acting）是目前最主流的 Agent 执行模式：
 │               AI Agent                 │
 │                                        │
 │  ┌─────────┐      ┌─────────────────┐  │
-│  │  规划   │      │      记忆        │  │
-│  │ 分解目标│      │ 短期：对话历史   │  │
-│  │ 选择工具│      │ 长期：向量数据库 │  │
+│  │ Planning│      │     Memory      │  │
+│  │Plan step│      │ Short: chat hist│  │
+│  │Pick tool│      │ Long: vector DB │  │
 │  └─────────┘      └─────────────────┘  │
 │                                        │
 │  ┌─────────┐      ┌─────────────────┐  │
-│  │  工具   │      │      行动        │  │
-│  │ 搜索引擎│      │ 执行代码         │  │
-│  │ 代码沙箱│      │ 调用 REST API    │  │
-│  │ 文件系统│      │ 操控浏览器       │  │
+│  │  Tools  │      │     Action      │  │
+│  │Web Srch │      │ Execute code    │  │
+│  │Code Sbox│      │ Call REST API   │  │
+│  │Filesys. │      │ Control browser │  │
 │  └─────────┘      └─────────────────┘  │
 └────────────────────────────────────────┘
 ```

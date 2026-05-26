@@ -32,11 +32,11 @@
 ```
 拆分前（单库）：            拆分后（按业务）：
 ┌─────────────────┐        ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ users           │        │  用户库   │  │  订单库   │  │  商品库   │
+│ users           │        │  User DB  │  │ Order DB  │  │ Items DB  │
 │ orders          │  →     │  users   │  │  orders  │  │  products│
 │ products        │        └──────────┘  └──────────┘  └──────────┘
 │ inventory       │                                    ┌──────────┐
-│ payments        │                                    │  支付库   │
+│ payments        │                                    │  Pay DB   │
 └─────────────────┘                                    │  payments│
                                                        └──────────┘
 ```

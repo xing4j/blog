@@ -40,8 +40,8 @@ JDK 6 引入了**锁升级**机制，synchronized 不再直接进入重量级锁
 ```
 无锁 → 偏向锁 → 轻量级锁 → 重量级锁
   │         │            │           │
-  │    单线程  │  竞争不激烈  │  线程阻塞挂起│
-  │    零开销  │  CAS 自旋   │  OS 内核参与 │
+  │ 1 thread  │ contention  │ OS blocked│
+  │  no cost  │ CAS spin    │  OS kernel│
   └─→ MarkWord 中存储持有线程 ID
 ```
 - **偏向锁**：第一个加锁的线程将自己的 ThreadID 写入对象 MarkWord，后续再次加锁仅检查 ID，无 CAS 操作

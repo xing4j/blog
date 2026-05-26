@@ -378,13 +378,13 @@ description: "Use when: 用户要新建一个 REST API 接口、新增 Controlle
 
 ```
                     ┌─────────────────────────┐
-                    │        宪章 / 指令        │
+                    │  Charter / Instructions  │
                     │  copilot-instructions.md │  ← 全程约束所有 AI 行为
                     │      CLAUDE.md           │
                     └───────────┬─────────────┘
                                 │ 提供全局上下文
                     ┌───────────▼─────────────┐
-                    │       SDD 工作流          │
+                    │     SDD Workflow         │
   用户提需求 ──────► │  Constitution → Spec     │  ← Spec Kit 驱动
                     │  → Plan → Tasks          │
                     └───────────┬─────────────┘

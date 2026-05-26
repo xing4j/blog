@@ -25,17 +25,19 @@ Sentinel 是阿里巴巴开源的流量防控组件，从流量控制、熔断�
 ## 一、Sentinel 核心概念
 
 ```
-资源（Resource）：需要保护的代码块（接口/方法/SQL/外部调用）
-规则（Rule）：作用在资源上的保护策略
-                    
+Resource: code block to protect (API / method / SQL / external call)
+Rule:     protection policy applied to resource
+
                          ┌─────────────────────────────────┐
-                         │          Sentinel 核心           │
-   请求 ──────────────→  │                                  │ ──→ 资源执行
-                         │  流控规则  降级规则  系统规则      │
+                         │         Sentinel Core            │
+   request ────────────→ │                                  │ → execute resource
+                         │  FlowRule  Degrade  SystemRule  │
                          │     ↓          ↓         ↓       │
-                         │  BlockException（被拒绝）         │
+                         │  BlockException (rejected)       │
                          └─────────────────────────────────┘
 ```
+
+> **说明**：资源（Resource）是需要保护的代码块；规则（Rule）作用在资源上。Sentinel Core 居中，根据 FlowRule（流控）、DegradeRule（降级）、SystemRule（系统）决定是执行充资源还是抛出 BlockException。
 
 ---
 
@@ -210,16 +212,16 @@ public void initDegradeRules() {
 ### 4.2 熔断状态机
 
 ```
-         正常请求通过
-  CLOSED ──────────────────────────→ CLOSED
+         normal requests pass through
+  CLOSED ──────────────────────→ CLOSED
     │                                    ↑
-    │ 触发熔断阈值                        │ 探测请求成功
+    │ circuit triggered                  │ probe OK
     ↓                                    │
-  OPEN  ──── 熔断时间窗口到期 ──→ HALF_OPEN
-    │         （拒绝所有请求）       │
-    │                               │ 探测请求失败
+  OPEN  ──── window expired ──→ HALF_OPEN
+    │         (all rejected)        │
+    │                               │ probe FAIL
     └───────────────────────────────┘
-                                    重置为 OPEN，延长时间窗口
+                                    reset to OPEN, extend window
 ```
 
 ---

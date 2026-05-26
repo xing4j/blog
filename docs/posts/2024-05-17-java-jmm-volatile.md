@@ -29,13 +29,13 @@ JMM 规定：所有变量存储在**主内存**，每个线程拥有独立的**�
 ```
   Thread A                        Thread B
 ┌─────────────────┐            ┌─────────────────┐
-│    工作内存      │            │    工作内存      │
-│  flag=false(旧) │            │   flag=true(新)  │
+│  Working Memory  │            │  Working Memory  │
+│ flag=false(old) │            │  flag=true(new)  │
 └────────┬────────┘            └────────┬────────┘
          │ read / write                 │ read / write
          ▼                              ▼
     ┌────────────────────────────────────────┐
-    │               主内存                   │
+    │              Main Memory               │
     │            flag = true                 │
     └────────────────────────────────────────┘
 

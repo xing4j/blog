@@ -8,26 +8,28 @@ webpack 是基于 **打包（Bundle）** 模型的构建工具，核心流程如
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    webpack 构建流程                            │
+│                      webpack Build Flow                      │
 │                                                              │
 │  entry.js                                                    │
 │     │                                                        │
 │     ▼                                                        │
-│  依赖分析（Compilation）                                      │
-│     │  递归分析所有 import/require                            │
+│  Dependency Analysis (Compilation)                           │
+│     │  Resolve all import/require chains                     │
 │     ▼                                                        │
-│  构建模块图（Module Graph）                                   │
-│     │  每个模块经过 loader 转换                               │
+│  Build Module Graph                                          │
+│     │  Each module is transformed by loaders                 │
 │     ▼                                                        │
-│  代码生成（Seal）                                             │
-│     │  将模块包裹成 webpack runtime 函数                      │
+│  Code Generation (Seal)                                      │
+│     │  Wrap modules into webpack runtime functions           │
 │     ▼                                                        │
-│  输出 bundle（Emit）                                          │
-│     │  写入 dist/bundle.js                                   │
+│  Output Bundle (Emit)                                        │
+│     │  Write dist/bundle.js                                  │
 │     ▼                                                        │
-│  完成（Done）                                                 │
+│  Done                                                        │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+> 阶段说明：依赖分析（Dependency Analysis）→ 模块图构建（Module Graph）→ 代码生成（Seal）→ bundle 输出（Emit）。
 
 ```javascript
 // webpack 基础配置
@@ -129,12 +131,12 @@ node_modules/.vite/deps/
 ```
 webpack 冷启动：
   ┌─────────────────────────────────────────┐
-  │  分析所有入口 → 打包全部模块 → 启动服务  │  ⏱ 30-120s
+  │  Bundle all modules → Start server         │  ⏱ 30-120s
   └─────────────────────────────────────────┘
 
 Vite 冷启动：
   ┌──────────────────────────────────────────────────────┐
-  │  esbuild 预构建依赖（仅一次） → 启动服务 → 按需编译  │  ⏱ 0.3-2s
+  │  esbuild pre-bundle deps (once) → Start → on-demand  │  ⏱ 0.3-2s
   └──────────────────────────────────────────────────────┘
 ```
 

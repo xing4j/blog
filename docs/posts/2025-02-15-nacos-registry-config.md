@@ -29,11 +29,11 @@ Nacos（Dynamic Naming and Configuration Service）是阿里巴巴开源的服�
                     │         Nacos Server         │
                     │                              │
                     │  ┌────────────┐  ┌────────┐  │
-                    │  │ 注册中心   │  │配置中心 │  │
+                    │  │ Registry   │  │Config  │  │
                     │  │ Naming     │  │Config  │  │
                     │  └────────────┘  └────────┘  │
                     │  ┌──────────────────────────┐ │
-                    │  │  持久化：MySQL / 内嵌Derby │ │
+                    │  │ Persistence: MySQL/Derby  │ │
                     │  └──────────────────────────┘ │
                     └──────────────┬──────────────┘
                          ↑心跳      │推送变更
@@ -331,21 +331,21 @@ Namespace（命名空间）→ Group（分组）→ DataId（配置文件）
 
 推荐的隔离策略：
 ┌──────────────────────────────────────────────────────────┐
-│  Namespace：环境隔离（不同命名空间数据完全隔离）             │
-│  ├── dev（开发环境）                                      │
-│  ├── test（测试环境）                                     │
-│  ├── staging（预发布环境）                                │
-│  └── prod（生产环境）                                     │
+│  Namespace: env isolation (data fully isolated per ns)   │
+│  ├── dev      (development env)                          │
+│  ├── test     (testing env)                              │
+│  ├── staging  (pre-production env)                       │
+│  └── prod     (production env)                           │
 │                                                          │
-│  Group：业务线/项目隔离                                    │
-│  ├── ORDER_GROUP（订单业务线）                            │
-│  ├── USER_GROUP（用户业务线）                             │
-│  └── DEFAULT_GROUP（公共配置）                            │
+│  Group: business-line / project isolation                │
+│  ├── ORDER_GROUP   (order business line)                 │
+│  ├── USER_GROUP    (user business line)                  │
+│  └── DEFAULT_GROUP (shared/public config)                │
 │                                                          │
-│  DataId：具体服务配置                                     │
+│  DataId: specific service config                         │
 │  ├── user-service.yaml                                   │
-│  ├── user-service-dev.yaml（环境特有）                    │
-│  └── common-db.yaml（共享配置）                          │
+│  ├── user-service-dev.yaml  (env-specific config)        │
+│  └── common-db.yaml         (shared config)              │
 └──────────────────────────────────────────────────────────┘
 ```
 

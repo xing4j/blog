@@ -85,22 +85,22 @@ XA 的致命缺陷：同步阻塞 + 协调者单点故障。Seata AT 模式的�
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                   Seata Server（TC）                      │
-│            Transaction Coordinator - 全局事务协调者        │
-│  职责：维护全局/分支事务状态，驱动提交或回滚                  │
+│                   Seata Server (TC)                       │
+│         Transaction Coordinator - Global TX Coordinator   │
+│  Manages global/branch TX state; drives commit/rollback  │
 └────────────────────────────┬─────────────────────────────┘
                              │ Netty RPC
            ┌─────────────────┴──────────────────┐
            ▼                                     ▼
 ┌──────────────────┐                  ┌──────────────────────┐
-│  订单服务（TM）   │                  │   库存服务（RM）       │
+│  Order-Svc (TM)  │                  │   Inventory-Svc (RM) │
 │  Transaction     │ ── Feign+XID ──▶ │   Resource Manager   │
-│  Manager         │                  │   管理分支事务资源      │
-│  @GlobalTx 发起  │                  │                      │
+│  Manager         │                  │   Manages Branch TX  │
+│  @GlobalTx Start │                  │                      │
 └────────┬─────────┘                  └──────────┬───────────┘
          │                                       │
          ▼                                       ▼
-    订单 DB（MySQL）                         库存 DB（MySQL）
+    Order DB (MySQL)                      Inventory DB (MySQL)
 ```
 
 - **TC（Transaction Coordinator）**：Seata Server，全局事务"大脑"，保存状态、协调提交/回滚

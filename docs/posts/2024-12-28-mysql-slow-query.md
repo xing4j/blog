@@ -9,16 +9,16 @@
 ## 一、背景：慢查询的常见根因
 
 ```
-慢查询根因分类：
+Slow query root cause categories:
 ┌─────────────────────────────────────────┐
-│ 索引问题（70%）                          │
-│  - 无索引、索引选择性差、索引失效         │
+│ Index Issues (70%)                        │
+│  - No index / poor selectivity / invalid  │
 ├─────────────────────────────────────────┤
-│ SQL 设计问题（20%）                      │
-│  - N+1 查询、大 OFFSET 分页、SELECT *    │
+│ SQL Design Issues (20%)                   │
+│  - N+1 query / large OFFSET / SELECT *   │
 ├─────────────────────────────────────────┤
-│ 数据量问题（10%）                        │
-│  - 单表数据量超千万、冷热数据未分离       │
+│ Data Volume Issues (10%)                  │
+│  - Table rows > 10M / hot-cold data mix  │
 └─────────────────────────────────────────┘
 ```
 ---

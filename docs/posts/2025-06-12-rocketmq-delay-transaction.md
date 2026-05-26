@@ -205,7 +205,7 @@ public class OrderTimeoutConsumer implements RocketMQListener<String> {
 
 ```
                     ┌─────────────────────────────────────────┐
-                    │              事务消息流程                  │
+                    │         Transaction Message Flow           │
                     └─────────────────────────────────────────┘
                     
 Step 1: Producer 发送 Half Message（半消息）
