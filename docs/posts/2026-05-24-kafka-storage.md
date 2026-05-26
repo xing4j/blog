@@ -1,16 +1,16 @@
-# Kafka 存储机制：Log 文件与索引详解
+﻿# Kafka 存储机制：Log 文件与索引详解
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
-> - ✅ [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
-> - ✅ [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
-> - ✅ [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
-> - ✅ [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
+> - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
+> - [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
+> - [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
+> - [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
 > - 👉 **K-05 存储机制：Log 文件与索引详解（本文）**
-> - ✅ [K-06 高可用：副本同步与 Leader 选举](2026-05-24-kafka-ha-replica.md)
-> - ✅ [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
-> - ✅ [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
-> - ✅ [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
-> - ✅ [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
+> - [K-06 高可用：副本同步与 Leader 选举](2026-05-24-kafka-ha-replica.md)
+> - [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
+> - [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
+> - [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
+> - [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
 
 **深度等级**：⭐⭐ 进阶｜**阅读时长**：约 22 分钟｜**分类**：中间件
 
@@ -191,7 +191,7 @@ Log Compaction（日志压实）：保留每个 Key 的**最新一条**消息，
 
 ---
 
-## 八、小结
+## 八、文章小结
 
 - Partition 数据以 LogSegment 分段存储，文件名即起始 Offset，触发分段的阈值是 1GB 或 7 天
 - 稀疏索引让 `.index` 文件极小可缓存，结合二分查找 + 顺序扫描实现 O(log n) 的消息定位

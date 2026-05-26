@@ -1,16 +1,16 @@
-# Kafka 核心概念与快速上手
+﻿# Kafka 核心概念与快速上手
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
 > - 👉 **K-01 Kafka 核心概念与快速上手（本文）**
-> - ✅ [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
-> - ✅ [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
-> - ✅ [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
-> - ✅ [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
-> - ✅ [K-06 高可用：副本同步与 Leader 选举](2026-05-24-kafka-ha-replica.md)
-> - ✅ [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
-> - ✅ [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
-> - ✅ [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
-> - ✅ [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
+> - [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
+> - [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
+> - [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
+> - [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
+> - [K-06 高可用：副本同步与 Leader 选举](2026-05-24-kafka-ha-replica.md)
+> - [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
+> - [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
+> - [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
+> - [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
 
 **深度等级**：⭐ 入门｜**阅读时长**：约 15 分钟｜**分类**：中间件
 
@@ -275,7 +275,7 @@ public class OrderConsumer {
 
 ---
 
-## 六、小结
+## 六、文章小结
 
 - **Topic + Partition** 是 Kafka 的核心数据模型：Topic 是逻辑分类，Partition 是物理并行单元
 - **Offset** 让消费者完全控制消费进度，实现消息回溯，是 Kafka 区别于传统队列的核心能力

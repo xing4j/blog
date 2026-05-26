@@ -1,16 +1,16 @@
-# Kafka 高可用：副本同步与 Leader 选举
+﻿# Kafka 高可用：副本同步与 Leader 选举
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
-> - ✅ [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
-> - ✅ [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
-> - ✅ [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
-> - ✅ [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
-> - ✅ [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
+> - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
+> - [K-02 Kafka 整体架构深度解析](2026-05-24-kafka-architecture.md)
+> - [K-03 Producer 原理与最佳实践](2026-05-24-kafka-producer.md)
+> - [K-04 Consumer 原理与 Rebalance 治理](2026-05-24-kafka-consumer-rebalance.md)
+> - [K-05 存储机制：Log 文件与索引详解](2026-05-24-kafka-storage.md)
 > - 👉 **K-06 高可用：副本同步与 Leader 选举（本文）**
-> - ✅ [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
-> - ✅ [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
-> - ✅ [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
-> - ✅ [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
+> - [K-07 吞吐量调优实战](2026-05-24-kafka-throughput-tuning.md)
+> - [K-08 消费延迟监控与 Lag 治理](2026-05-24-kafka-consumer-lag.md)
+> - [K-09 事务消息与 Exactly-Once 语义](2026-05-24-kafka-exactly-once.md)
+> - [K-10 KRaft 模式：去 ZooKeeper 实战](2026-05-24-kafka-kraft.md)
 
 **深度等级**：⭐⭐ 进阶｜**阅读时长**：约 22 分钟｜**分类**：中间件
 
@@ -159,7 +159,7 @@ KRaft 模式用 Raft 协议替代 ZooKeeper，Controller 选举延迟从**秒级
 
 ---
 
-## 六、小结
+## 六、文章小结
 
 - HW 是所有 ISR 副本已同步 Offset 的最小值，Consumer 只能读 HW 以下的已提交消息
 - ISR 动态维护保证了"提交的消息必然在所有 ISR 副本上存在"这一核心不变量
