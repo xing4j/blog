@@ -1,6 +1,6 @@
 # 📚 文章归档
 
-> 共 100 篇文章
+> 共 107 篇文章
 
 ## Java 核心
 
@@ -82,12 +82,21 @@
 
 ## 微服务
 
-- [OpenFeign 超时、重试与熔断配置](posts/2025-09-06-openfeign-timeout-retry.md) — `2025-09-06`
+> 📚 **「Spring Cloud 微服务实战」系列（12 篇）**
+
+- [SC-01 Spring Cloud 微服务全景：架构演进与组件选型](posts/2025-06-27-spring-cloud-overview.md) — `2025-06-27`
+- [SC-02 Nacos 服务注册与配置中心实战](posts/2025-02-15-nacos-registry-config.md) — `2025-02-15`
+- [SC-03 Spring Cloud Gateway：路由、过滤器与灰度发布](posts/2026-05-26-spring-cloud-gateway.md) — `2026-05-26`
+- [SC-04 OpenFeign 深度实战：声明式调用、拦截器与熔断](posts/2025-09-06-openfeign-timeout-retry.md) — `2025-09-06`
+- [SC-05 Spring Cloud LoadBalancer：负载均衡原理与自定义策略](posts/2026-05-26-spring-cloud-loadbalancer.md) — `2026-05-26`
+- [SC-06 Sentinel 流量防护：限流、熔断与热点规则](posts/2025-04-26-sentinel-rate-limit.md) — `2025-04-26`
+- [SC-07 分布式链路追踪：Micrometer Tracing + SkyWalking 实战](posts/2026-05-26-spring-cloud-tracing.md) — `2026-05-26`
+- [SC-08 微服务安全：Gateway + JWT 统一鉴权方案](posts/2026-05-26-spring-cloud-security.md) — `2026-05-26`
+- [SC-09 Seata 分布式事务：AT/TCC/Saga 三模式对比实战](posts/2025-01-11-seata-distributed-transaction.md) — `2025-01-11`
+- [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](posts/2026-05-26-nacos-config-advanced.md) — `2026-05-26`
+- [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](posts/2026-05-26-spring-cloud-observability.md) — `2026-05-26`
+- [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](posts/2026-05-26-microservice-best-practices.md) — `2026-05-26`
 - [分布式 ID 生成方案：雪花算法与 Leaf](posts/2025-08-02-distributed-id.md) — `2025-08-02`
-- [Spring Cloud 微服务体系全景图](posts/2025-06-27-spring-cloud-overview.md) — `2025-06-27`
-- [Sentinel 限流熔断：规则配置与原理](posts/2025-04-26-sentinel-rate-limit.md) — `2025-04-26`
-- [Nacos 服务注册与配置中心实战](posts/2025-02-15-nacos-registry-config.md) — `2025-02-15`
-- [Seata 分布式事务：AT/TCC/Saga 模式](posts/2025-01-11-seata-distributed-transaction.md) — `2025-01-11`
 
 ## Vue 前端
 

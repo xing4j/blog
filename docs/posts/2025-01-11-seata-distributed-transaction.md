@@ -1,6 +1,22 @@
-﻿# 分布式事务：Seata 全面解析与生产实践
+﻿# SC-09 Seata 分布式事务：AT/TCC/Saga 三模式对比实战
 
 <div class="post-meta">📅 2025-01-11 &nbsp;·&nbsp; 🏷️ <span class="tag">Seata</span> <span class="tag">分布式事务</span> <span class="tag">微服务</span></div>
+
+> 📚 **本文属于「Spring Cloud 微服务实战」系列**
+> - [SC-01 Spring Cloud 微服务全景：架构演进与组件选型](2025-06-27-spring-cloud-overview.md)
+> - [SC-02 Nacos 服务注册与配置中心实战](2025-02-15-nacos-registry-config.md)
+> - [SC-03 Spring Cloud Gateway：路由、过滤器与灰度发布](2026-05-26-spring-cloud-gateway.md)
+> - [SC-04 OpenFeign 深度实战：声明式调用、拦截器与熔断](2025-09-06-openfeign-timeout-retry.md)
+> - [SC-05 Spring Cloud LoadBalancer：负载均衡原理与自定义策略](2026-05-26-spring-cloud-loadbalancer.md)
+> - [SC-06 Sentinel 流量防护：限流、熔断与热点规则](2025-04-26-sentinel-rate-limit.md)
+> - [SC-07 分布式链路追踪：Micrometer Tracing + SkyWalking 实战](2026-05-26-spring-cloud-tracing.md)
+> - [SC-08 微服务安全：Gateway + JWT 统一鉴权方案](2026-05-26-spring-cloud-security.md)
+> - 👉 **SC-09 Seata 分布式事务：AT/TCC/Saga 三模式对比实战（本文）**
+> - [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](2026-05-26-nacos-config-advanced.md)
+> - [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](2026-05-26-spring-cloud-observability.md)
+> - [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](2026-05-26-microservice-best-practices.md)
+
+**深度等级**：⭐⭐⭐ 深度｜**阅读时长**：约 30 分钟｜**分类**：微服务
 
 下单扣库存，两个服务，两个数据库。订单写成功，库存扣失败——钱收了，货没扣。这不是假设，是每个拆了库的团队迟早要面对的问题。本文从分布式事务的本质挑战出发，系统讲解 Seata 的 AT/TCC 两种模式，重点剖析 AT 模式的底层机制，并提供完整的 Spring Boot 集成方案和生产实践建议。
 

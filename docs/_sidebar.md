@@ -1,16 +1,16 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [SC-12 微服务最佳实践](posts/2026-05-26-microservice-best-practices.md)
+  - [SC-11 微服务可观测性](posts/2026-05-26-spring-cloud-observability.md)
+  - [SC-10 Nacos 配置治理进阶](posts/2026-05-26-nacos-config-advanced.md)
+  - [SC-08 微服务安全：Gateway + JWT](posts/2026-05-26-spring-cloud-security.md)
+  - [SC-07 分布式链路追踪](posts/2026-05-26-spring-cloud-tracing.md)
+  - [SC-05 Spring Cloud LoadBalancer](posts/2026-05-26-spring-cloud-loadbalancer.md)
+  - [SC-03 Spring Cloud Gateway](posts/2026-05-26-spring-cloud-gateway.md)
   - [SB-22 Spring Boot 测试体系](posts/2026-05-24-spring-boot-testing.md)
   - [SB-19 Spring Boot 自定义 Starter](posts/2026-05-24-spring-boot-custom-starter.md)
   - [SB-18 Spring Boot Actuator](posts/2026-05-24-spring-boot-actuator.md)
-  - [SB-17 多数据源：动态路由与跨库事务](posts/2026-05-24-spring-boot-multi-datasource.md)
-  - [SB-16 全局异常处理与参数校验](posts/2026-05-24-spring-exception-handler.md)
-  - [SB-15 Spring 扩展点：BPP、BFPP](posts/2026-05-24-spring-extension-points.md)
-  - [SB-14 @Async 异步编程](posts/2026-05-24-spring-async.md)
-  - [SB-13 Spring 事件驱动](posts/2026-05-24-spring-events.md)
-  - [SB-11 Spring 循环依赖：三级缓存](posts/2026-05-24-spring-circular-dependency.md)
-  - [SB-10 @Conditional 条件装配](posts/2026-05-24-spring-boot-conditional.md)
 
 
 - **分类**
@@ -18,7 +18,7 @@
   - [Spring 生态 (25)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (15)](posts/#中间件)
-  - [微服务 (6)](posts/#微服务)
+  - [微服务 (18)](posts/#微服务)
   - [Vue 前端 (6)](posts/#vue-前端)
   - [DevOps (8)](posts/#devops)
   - [系统设计 (5)](posts/#系统设计)

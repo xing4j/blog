@@ -6,6 +6,13 @@
 
 | 日期 | 文章 | 分类 |
 |------|------|------|
+| 2026-05-26 | [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](posts/2026-05-26-microservice-best-practices.md) | 微服务 |
+| 2026-05-26 | [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](posts/2026-05-26-spring-cloud-observability.md) | 微服务 |
+| 2026-05-26 | [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](posts/2026-05-26-nacos-config-advanced.md) | 微服务 |
+| 2026-05-26 | [SC-08 微服务安全：Gateway + JWT 统一鉴权方案](posts/2026-05-26-spring-cloud-security.md) | 微服务 |
+| 2026-05-26 | [SC-07 分布式链路追踪：Micrometer Tracing + SkyWalking 实战](posts/2026-05-26-spring-cloud-tracing.md) | 微服务 |
+| 2026-05-26 | [SC-05 Spring Cloud LoadBalancer：负载均衡原理与自定义策略](posts/2026-05-26-spring-cloud-loadbalancer.md) | 微服务 |
+| 2026-05-26 | [SC-03 Spring Cloud Gateway：路由、过滤器与灰度发布](posts/2026-05-26-spring-cloud-gateway.md) | 微服务 |
 | 2026-05-24 | [SB-22 Spring Boot 测试体系：@SpringBootTest 与 MockMvc](posts/2026-05-24-spring-boot-testing.md) | Spring 生态 |
 | 2026-05-24 | [SB-19 Spring Boot 自定义 Starter：从设计到发布](posts/2026-05-24-spring-boot-custom-starter.md) | Spring 生态 |
 | 2026-05-24 | [SB-18 Spring Boot Actuator：健康检查与自定义端点](posts/2026-05-24-spring-boot-actuator.md) | Spring 生态 |
@@ -22,7 +29,7 @@
 - [Spring 生态 (25 篇)](posts/#spring-生态)
 - [数据库 (10 篇)](posts/#数据库)
 - [中间件 (15 篇)](posts/#中间件)
-- [微服务 (6 篇)](posts/#微服务)
+- [微服务 (18 篇)](posts/#微服务)
 - [Vue 前端 (6 篇)](posts/#vue-前端)
 - [DevOps (8 篇)](posts/#devops)
 - [系统设计 (5 篇)](posts/#系统设计)
