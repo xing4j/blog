@@ -1,4 +1,4 @@
-﻿# Kafka KRaft 模式：去 ZooKeeper 实战
+﻿# K-10 Kafka KRaft 模式：去 ZooKeeper 实战
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
 > - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)

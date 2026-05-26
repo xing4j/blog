@@ -1,4 +1,4 @@
-﻿# Kafka Consumer 原理与 Rebalance 治理
+﻿# K-04 Kafka Consumer 原理与 Rebalance 治理
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
 > - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)

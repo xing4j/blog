@@ -1,4 +1,4 @@
-﻿# Kafka 事务消息与 Exactly-Once 语义
+﻿# K-09 Kafka 事务消息与 Exactly-Once 语义
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
 > - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)

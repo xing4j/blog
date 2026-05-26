@@ -1,4 +1,4 @@
-﻿# Kafka 存储机制：Log 文件与索引详解
+﻿# K-05 Kafka 存储机制：Log 文件与索引详解
 
 > 📚 **本文属于「Kafka 原理与生产实战」系列**
 > - [K-01 Kafka 核心概念与快速上手](2026-05-24-kafka-quickstart.md)
