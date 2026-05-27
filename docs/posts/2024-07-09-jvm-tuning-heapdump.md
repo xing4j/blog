@@ -1,6 +1,12 @@
-﻿# JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析
+﻿# JVM-04 JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析
 
 <div class="post-meta">📅 2024-07-09 &nbsp;·&nbsp; 🏷️ <span class="tag">JVM</span></div>
+
+> 📚 **本文属于「JVM 原理与调优实战」系列**
+> - [JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存](posts/2026-05-27-jvm-architecture.md)
+> - [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md)
+> - [JVM-03 JVM 垃圾回收器详解：从 CMS 到 ZGC 的演进](posts/2024-05-27-jvm-gc-collectors.md)
+> - 👉 **JVM-04 JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析（本文）**
 
 生产服务半夜频繁重启，日志只有 java.lang.OutOfMemoryError: Java heap space。没有 heap dump，没有 GC 日志，运维人员只能重启祈祷。这篇文章的目的是：**在问题发生之前配置好可观测性工具，在问题发生时能快速定位**。
 

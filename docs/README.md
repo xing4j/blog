@@ -6,6 +6,8 @@
 
 | 日期 | 文章 | 分类 |
 |------|------|------|
+| 2026-05-27 | [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md) | Java 核心 |
+| 2026-05-27 | [JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存](posts/2026-05-27-jvm-architecture.md) | Java 核心 |
 | 2026-05-26 | [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](posts/2026-05-26-microservice-best-practices.md) | 微服务 |
 | 2026-05-26 | [SC-11 微服务可观测性：Actuator + Prometheus + Grafana](posts/2026-05-26-spring-cloud-observability.md) | 微服务 |
 | 2026-05-26 | [SC-10 Nacos 配置治理进阶：多环境、灰度与动态刷新](posts/2026-05-26-nacos-config-advanced.md) | 微服务 |
@@ -25,7 +27,7 @@
 | 2026-05-24 | [SB-11 Spring 循环依赖：三级缓存的设计原理](posts/2026-05-24-spring-circular-dependency.md) | Spring 生态 |
 ## 🏷️ 分类
 
-- [Java 核心 (12 篇)](posts/#java-核心)
+- [Java 核心 (14 篇)](posts/#java-核心)
 - [Spring 生态 (25 篇)](posts/#spring-生态)
 - [数据库 (10 篇)](posts/#数据库)
 - [中间件 (15 篇)](posts/#中间件)

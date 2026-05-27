@@ -1,9 +1,11 @@
 # 📚 文章归档
 
-> 共 107 篇文章
+> 共 109 篇文章
 
 ## Java 核心
 
+- [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md) — `2026-05-27`
+- [JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存](posts/2026-05-27-jvm-architecture.md) — `2026-05-27`
 - [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md) — `2026-05-21`
 - [Java 8 新特性全面实战指南](posts/2026-05-16-java8-new-features.md) — `2026-05-16`
 - [Java 泛型擦除与通配符详解](posts/2025-05-08-java-generics-erasure.md) — `2025-05-08`
@@ -13,8 +15,8 @@
 - [CompletableFuture 异步编程实战](posts/2024-10-19-java-completablefuture.md) — `2024-10-19`
 - [ReentrantLock vs synchronized 深度对比](posts/2024-09-14-reentrantlock-vs-synchronized.md) — `2024-09-14`
 - [Java 线程池详解：参数、原理与最佳实践](posts/2024-08-06-java-thread-pool.md) — `2024-08-06`
-- [JVM 调优实战：参数配置与 Heap Dump 分析](posts/2024-07-09-jvm-tuning-heapdump.md) — `2024-07-09`
-- [JVM 垃圾回收器详解：G1 vs ZGC](posts/2024-05-27-jvm-gc-collectors.md) — `2024-05-27`
+- [JVM-04 JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析](posts/2024-07-09-jvm-tuning-heapdump.md) — `2024-07-09`
+- [JVM-03 JVM 垃圾回收器详解：从 CMS 到 ZGC 的演进](posts/2024-05-27-jvm-gc-collectors.md) — `2024-05-27`
 - [Java 内存模型（JMM）与 volatile 详解](posts/2024-05-17-java-jmm-volatile.md) — `2024-05-17`
 
 ## Spring 生态

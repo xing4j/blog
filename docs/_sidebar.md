@@ -1,6 +1,8 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [JVM-02 JVM 内存区域详解](posts/2026-05-27-jvm-memory-areas.md)
+  - [JVM-01 JVM 架构总览](posts/2026-05-27-jvm-architecture.md)
   - [SC-12 微服务最佳实践](posts/2026-05-26-microservice-best-practices.md)
   - [SC-11 微服务可观测性](posts/2026-05-26-spring-cloud-observability.md)
   - [SC-10 Nacos 配置治理进阶](posts/2026-05-26-nacos-config-advanced.md)
@@ -14,7 +16,7 @@
 
 
 - **分类**
-  - [Java 核心 (12)](posts/#java-核心)
+  - [Java 核心 (14)](posts/#java-核心)
   - [Spring 生态 (25)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (15)](posts/#中间件)
