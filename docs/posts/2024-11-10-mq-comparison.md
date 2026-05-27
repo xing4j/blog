@@ -11,7 +11,7 @@
 ### RabbitMQ 架构
 
 ```
-Producer → Exchange → Queue → Consumer
+Producer -> Exchange -> Queue -> Consumer
               |
          (Binding Key)
          direct / fanout / topic / headers
@@ -22,8 +22,8 @@ RabbitMQ 基于 AMQP 协议，核心模型是 **Exchange + Queue**。Producer �
 ### Kafka 架构
 
 ```
-Producer → Topic (Partition 0) → Consumer Group A
-                (Partition 1) → Consumer Group B
+Producer -> Topic (Partition 0) -> Consumer Group A
+                (Partition 1) -> Consumer Group B
                 (Partition 2)
 
 每个 Partition 对应多个 Replica（Leader + Follower）
@@ -35,11 +35,11 @@ Kafka 是一个分布式流处理平台，以 **Topic + Partition** 为核心模
 ### RocketMQ 架构
 
 ```
-Producer → NameServer (路由中心)
-                ↓
+Producer -> NameServer (路由中心)
+                v
            Broker Cluster
            (Master + Slave)
-                ↓
+                v
            Consumer Group
 ```
 
@@ -247,16 +247,16 @@ producer.setTransactionListener(new TransactionListener() {
 
 ```
 需要超高吞吐（>10万/s）？
-    ├── 是 → 需要流处理生态（Flink/Spark）？
-    │         ├── 是 → Kafka
-    │         └── 否 → 需要延迟/事务消息？
-    │                   ├── 是 → RocketMQ
-    │                   └── 否 → Kafka / RocketMQ
-    └── 否 → 需要复杂路由（topic/fanout/headers）？
-              ├── 是 → RabbitMQ
-              └── 否 → 团队是Java系？
-                        ├── 是 → RocketMQ
-                        └── 否 → RabbitMQ
+    +-- 是 -> 需要流处理生态（Flink/Spark）？
+    |         +-- 是 -> Kafka
+    |         +-- 否 -> 需要延迟/事务消息？
+    |                   +-- 是 -> RocketMQ
+    |                   +-- 否 -> Kafka / RocketMQ
+    +-- 否 -> 需要复杂路由（topic/fanout/headers）？
+              +-- 是 -> RabbitMQ
+              +-- 否 -> 团队是Java系？
+                        +-- 是 -> RocketMQ
+                        +-- 否 -> RabbitMQ
 ```
 
 ---

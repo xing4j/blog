@@ -1,4 +1,4 @@
-# Hello World — 博客搭建记录
+﻿# Hello World — 博客搭建记录
 
 <div class="post-meta">📅 2026-05-15 &nbsp;·&nbsp; 🏷️ <span class="tag">docsify</span> <span class="tag">GitHub Pages</span></div>
 
@@ -18,16 +18,16 @@
 
 ```text
 docs/
-├── index.html        # docsify 入口（唯一需要的 HTML）
-├── .nojekyll         # 禁用 Jekyll 处理
-├── README.md         # 首页
-├── _sidebar.md       # 侧边栏导航
-├── _navbar.md        # 顶部导航
-├── _coverpage.md     # 封面页
-├── about.md          # 关于页
-└── posts/            # 文章目录
-    ├── README.md     # 文章归档
-    └── *.md          # 各篇文章
++-- index.html        # docsify 入口（唯一需要的 HTML）
++-- .nojekyll         # 禁用 Jekyll 处理
++-- README.md         # 首页
++-- _sidebar.md       # 侧边栏导航
++-- _navbar.md        # 顶部导航
++-- _coverpage.md     # 封面页
++-- about.md          # 关于页
++-- posts/            # 文章目录
+    +-- README.md     # 文章归档
+    +-- *.md          # 各篇文章
 ```
 
 ## 使用的 docsify 插件

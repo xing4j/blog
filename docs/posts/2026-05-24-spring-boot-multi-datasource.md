@@ -232,9 +232,9 @@ Spring 的 `DataSourceTransactionManager` 管理的是**单个数据源连接**�
 
 ```
 库 A 写入 + 发送 MQ 消息 (本地事务保证)
-       ↓
+       v
    MQ 消息消费
-       ↓
+       v
    库 B 写入 (独立事务)
 ```
 

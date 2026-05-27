@@ -1,4 +1,4 @@
-# qiankun 微前端框架：原理详解与实战指南
+﻿# qiankun 微前端框架：原理详解与实战指南
 
 <div class="post-meta">📅 2026-05-17 &nbsp;·&nbsp; 🏷️ <span class="tag">Vue</span> <span class="tag">微前端</span></div>
 
@@ -37,17 +37,17 @@
 ### 2.1 整体架构
 
 ```
-┌─────────────────────────────────────────┐
-│         Main Application (Shell)        │
-│  ┌──────────┐  ┌──────────────────────┐ │
-│  │  NavBar  │  │  Sub-app Mount Area  │ │
-│  └──────────┘  │  ┌────────────────┐  │ │
-│                │  │  Sub-App A(Vue)│  │ │
-│                │  └────────────────┘  │ │
-│                └──────────────────────┘ │
-└─────────────────────────────────────────┘
++-----------------------------------------+
+|         Main Application (Shell)        |
+|  +----------+  +----------------------+ |
+|  |  NavBar  |  |  Sub-app Mount Area  | |
+|  +----------+  |  +----------------+  | |
+|                |  |  Sub-App A(Vue)|  | |
+|                |  +----------------+  | |
+|                +----------------------+ |
++-----------------------------------------+
 
-路由变化 → qiankun 匹配激活规则 → 加载/卸载子应用
+路由变化 -> qiankun 匹配激活规则 -> 加载/卸载子应用
 ```
 
 ### 2.2 JS 沙箱机制
@@ -75,7 +75,7 @@ qiankun 提供三种沙箱实现：
 ```javascript
 // 方式一：experimentalStyleIsolation（推荐）
 // qiankun 会给子应用所有 CSS 选择器加上属性选择器前缀
-// 子应用 .title { color: red } → div[data-qiankun="app-name"] .title { color: red }
+// 子应用 .title { color: red } -> div[data-qiankun="app-name"] .title { color: red }
 
 // 方式二：strictStyleIsolation
 // 使用 Shadow DOM 完全隔离，兼容性略差
@@ -569,33 +569,33 @@ microApp.unmount()
 
 ```
 micro-frontend/
-├── main-app/                 # 主应用（基座）
-│   ├── src/
-│   │   ├── micro/
-│   │   │   └── index.js     # qiankun 注册配置
-│   │   ├── router/
-│   │   │   └── index.js     # 主应用路由
-│   │   ├── views/
-│   │   │   ├── Home.vue
-│   │   │   └── SubAppContainer.vue  # 子应用容器
-│   │   └── main.js
-│   └── package.json
-│
-├── app-vue/                  # Vue 子应用
-│   ├── src/
-│   │   ├── public-path.js   # webpack publicPath 配置
-│   │   ├── router/
-│   │   │   └── index.js     # 支持动态 base 的 router
-│   │   └── main.js          # 导出 bootstrap/mount/unmount
-│   ├── vue.config.js        # UMD 打包配置
-│   └── package.json
-│
-└── app-react/                # React 子应用
-    ├── src/
-    │   ├── public-path.js
-    │   └── index.js         # 导出 bootstrap/mount/unmount
-    ├── config-overrides.js  # UMD 打包配置
-    └── package.json
++-- main-app/                 # 主应用（基座）
+|   +-- src/
+|   |   +-- micro/
+|   |   |   +-- index.js     # qiankun 注册配置
+|   |   +-- router/
+|   |   |   +-- index.js     # 主应用路由
+|   |   +-- views/
+|   |   |   +-- Home.vue
+|   |   |   +-- SubAppContainer.vue  # 子应用容器
+|   |   +-- main.js
+|   +-- package.json
+|
++-- app-vue/                  # Vue 子应用
+|   +-- src/
+|   |   +-- public-path.js   # webpack publicPath 配置
+|   |   +-- router/
+|   |   |   +-- index.js     # 支持动态 base 的 router
+|   |   +-- main.js          # 导出 bootstrap/mount/unmount
+|   +-- vue.config.js        # UMD 打包配置
+|   +-- package.json
+|
++-- app-react/                # React 子应用
+    +-- src/
+    |   +-- public-path.js
+    |   +-- index.js         # 导出 bootstrap/mount/unmount
+    +-- config-overrides.js  # UMD 打包配置
+    +-- package.json
 ```
 
 ---

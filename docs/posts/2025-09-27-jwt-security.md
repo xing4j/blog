@@ -9,9 +9,9 @@ JWT（JSON Web Token）是现代认证的主流方案，但也存在多种安全
 ## 一、JWT 结构
 
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.   ← Header（Base64）
-eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIn0.    ← Payload（Base64）
-SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c ← Signature（HMAC）
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.   <- Header（Base64）
+eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIn0.    <- Payload（Base64）
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c <- Signature（HMAC）
 
 Header:  {"alg": "HS256", "typ": "JWT"}
 Payload: {"userId": 1, "role": "USER", "exp": 1749072000}

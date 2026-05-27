@@ -36,12 +36,12 @@ Consumer 只能读取 HW 以下的消息（已提交消息），HW 以上的消�
 假设 Partition 有 3 个副本（1 个 Leader + 2 个 Follower），接收一条消息的同步流程：
 
 ```
-时间轴 →
+时间轴 ->
 
 Leader:
   写入消息 msg1      LEO=1, HW=0
-  Follower-A Fetch→  返回 msg1
-  Follower-B Fetch→  返回 msg1
+  Follower-A Fetch->  返回 msg1
+  Follower-B Fetch->  返回 msg1
   收到两个 Follower 的 ACK（LEO 更新到 1）
   更新 HW=1          LEO=1, HW=1（消息可被 Consumer 消费）
 
@@ -74,15 +74,15 @@ Follower-B:
 
 ```
 正常状态：ISR = {Leader, Follower-A, Follower-B}
-  acks=all 需要 3 个副本确认 → 安全
+  acks=all 需要 3 个副本确认 -> 安全
 
 Follower-B 网络故障，退出 ISR：
   ISR = {Leader, Follower-A}
-  acks=all 只需 2 个副本确认 → 仍安全
+  acks=all 只需 2 个副本确认 -> 仍安全
 
 Follower-A 也故障，退出 ISR：
   ISR = {Leader}（仅剩 Leader 自身）
-  acks=all 退化为 acks=1 → 危险！
+  acks=all 退化为 acks=1 -> 危险！
 ```
 
 **防御措施**：在 Broker 端（或 Topic 级别）配置 `min.insync.replicas=2`，当 ISR 数量低于此值时，Broker 拒绝 Producer 写入，抛出 `NotEnoughReplicasException`，而非接受仅 Leader 的不安全写入。
@@ -98,7 +98,7 @@ Broker 宕机时，Controller 触发 Leader 选举：
 ```
 ① Controller 检测到 Broker 1（原 Leader）下线
 ② Controller 从该 Partition 的 ISR 列表中选取第一个副本作为新 Leader
-   ISR = [Broker2, Broker3] → Broker2 成为新 Leader
+   ISR = [Broker2, Broker3] -> Broker2 成为新 Leader
 ③ Controller 将新 Leader 信息写入 ZooKeeper/KRaft 元数据
 ④ Controller 通知集群中所有 Broker 更新元数据缓存
 ⑤ Producer/Consumer 感知元数据变化，向新 Leader 发起请求

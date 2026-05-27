@@ -1,4 +1,4 @@
-# JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战
+﻿# JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战
 
 <div class="post-meta">📅 2026-05-27 &nbsp;·&nbsp; 🏷️ <span class="tag">JVM</span></div>
 
@@ -326,7 +326,7 @@ jcmd <PID> VM.native_memory summary scale=MB | grep Metaspace
 
 # 3. 统计已加载类的数量
 jmap -clstats <PID>
-# 观察 ClassLoader 数量异常增多 → 指向动态代理泄漏
+# 观察 ClassLoader 数量异常增多 -> 指向动态代理泄漏
 
 # 4. MAT 分析：关注 ClassLoader 对象数量和每个 ClassLoader 加载的类
 ```
@@ -506,7 +506,7 @@ dump 文件可能几 GB，确保目标路径有足够磁盘空间，并配置定
 **❌ 错误：误以为 DirectByteBuffer 对象被 GC 回收后直接内存立即释放**
 
 ```java
-// 错误认知：buffer 被 GC 回收 → 直接内存立即释放
+// 错误认知：buffer 被 GC 回收 -> 直接内存立即释放
 ByteBuffer buffer = ByteBuffer.allocateDirect(100 * 1024 * 1024);
 buffer = null;  // 不能保证直接内存马上释放
 System.gc();    // 只是"建议" GC，不保证触发

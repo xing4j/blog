@@ -39,8 +39,8 @@ Starter 是 Spring Boot 生态的核心复用机制——引入一个依赖，�
 官方规范将 Starter 拆成两个 Maven 模块：
 
 ```
-audit-log-spring-boot-starter       ← 纯 POM，仅声明依赖
-audit-log-spring-boot-autoconfigure ← 实现：AutoConfiguration + 核心代码
+audit-log-spring-boot-starter       <- 纯 POM，仅声明依赖
+audit-log-spring-boot-autoconfigure <- 实现：AutoConfiguration + 核心代码
 ```
 
 **命名约定**：
@@ -70,8 +70,8 @@ audit-log-spring-boot-autoconfigure/
     service/AuditLogService.java
     service/impl/DefaultAuditLogService.java
   src/main/resources/META-INF/
-    spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports  ← SB 3.x
-    spring-configuration-metadata.json  ← IDE 提示
+    spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports  <- SB 3.x
+    spring-configuration-metadata.json  <- IDE 提示
 ```
 
 ### 2.2 配置属性类

@@ -1,4 +1,4 @@
-# JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存
+﻿# JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存
 
 <div class="post-meta">📅 2026-05-27 &nbsp;·&nbsp; 🏷️ <span class="tag">JVM</span></div>
 
@@ -24,7 +24,7 @@ Java 的核心口号是 **"Write Once, Run Anywhere"**（一次编写，到处�
   Java Source (.java)           C/C++ Source (.c/.cpp)
          |  javac                      |  gcc/clang
          v                             v
-  Bytecode (.class) ─▶ JVM ─▶    Machine Code (x86/ARM)
+  Bytecode (.class) -> JVM ->    Machine Code (x86/ARM)
   (platform neutral)   (per OS)  (platform specific)
 ```
 
@@ -107,7 +107,7 @@ JVM 采用**懒加载（Lazy Loading）**策略，只在真正需要时才加载
 ### 3.2 加载的五个阶段
 
 ```
-[Load] ──▶ [Verify] ──▶ [Prepare] ──▶ [Resolve] ──▶ [Init]
+[Load] --> [Verify] --> [Prepare] --> [Resolve] --> [Init]
   加载        验证          准备           解析          初始化
 ```
 
@@ -164,11 +164,11 @@ JVM 启动时默认用**解释器**逐行翻译字节码。对于**热点代码*
 
 ```
 冷代码（首次调用）：
-  bytecode ──▶ Interpreter ──▶ per-instruction machine ops  (慢)
+  bytecode --> Interpreter --> per-instruction machine ops  (慢)
 
 热点代码（调用 N 次后触发 JIT）：
-  bytecode ──▶ JIT Compiler ──▶ native code (cached)
-  后续调用  ──▶ native code 直接执行                          (快)
+  bytecode --> JIT Compiler --> native code (cached)
+  后续调用  --> native code 直接执行                          (快)
 ```
 
 热点探测阈值（JDK 17 Server 模式默认值）：
@@ -195,7 +195,7 @@ HotSpot JVM 有两个 JIT 编译器，通过分层编译协同工作：
 分层流转路径（多数方法的轨迹）：
 
 ```
-Interpreter ──▶ C1 (L1, no profiling) ──▶ C1 (L3, full profiling) ──▶ C2 (L4)
+Interpreter --> C1 (L1, no profiling) --> C1 (L3, full profiling) --> C2 (L4)
 ```
 
 实际中调用频率极低的方法可能永远停在解释执行，调用量很高的简单方法会被 C2 充分内联。

@@ -52,16 +52,16 @@ http {
 
 ```
 main
-└── events
-└── http
-    ├── upstream（负载均衡池）
-    └── server（虚拟主机）
-        ├── listen
-        ├── server_name
-        └── location（路由规则）
-            ├── proxy_pass
-            ├── root / alias
-            └── ...
++-- events
++-- http
+    +-- upstream（负载均衡池）
+    +-- server（虚拟主机）
+        +-- listen
+        +-- server_name
+        +-- location（路由规则）
+            +-- proxy_pass
+            +-- root / alias
+            +-- ...
 ```
 
 ---
@@ -175,7 +175,7 @@ upstream backend_pool {
     server 192.168.1.10:8080;
     server 192.168.1.11:8080;
     server 192.168.1.12:8080;
-    # 请求依次分配到三台服务器：1→2→3→1→2→3...
+    # 请求依次分配到三台服务器：1->2->3->1->2->3...
 }
 ```
 
@@ -313,9 +313,9 @@ http {
 
 ```
 limit_req 使用漏桶算法：
-                   ┌─────────────────┐
-请求进入 ──→ 溢出丢弃 │  bucket(burst)  │ → 以固定速率(rate)处理
-                   └─────────────────┘
+                   +-----------------+
+请求进入 ---> 溢出丢弃 |  bucket(burst)  | -> 以固定速率(rate)处理
+                   +-----------------+
 
 nodelay 参数：突发请求立即处理（令牌桶效果），不排队等待
 无nodelay：突发请求排队等待，保持 rate 速率输出（漏桶效果）
@@ -374,7 +374,7 @@ http {
         keepalive 32;
     }
     
-    # HTTP → HTTPS 重定向
+    # HTTP -> HTTPS 重定向
     server {
         listen 80;
         server_name example.com www.example.com;

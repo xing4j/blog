@@ -14,10 +14,10 @@ MyBatis 缓存分两级：
 
 ```
 一级缓存（SqlSession 级）：
-同一个 SqlSession → 同一条 SQL + 参数 → 命中缓存，不查 DB
+同一个 SqlSession -> 同一条 SQL + 参数 -> 命中缓存，不查 DB
 
 二级缓存（Namespace 级）：
-不同 SqlSession → 同一 Mapper → 命中跨 Session 的全局缓存
+不同 SqlSession -> 同一 Mapper -> 命中跨 Session 的全局缓存
 ```
 ---
 
@@ -27,10 +27,10 @@ MyBatis 缓存分两级：
 
 ```
 SqlSession.selectOne("getById", 1L)
-    → 生成 CacheKey（statementId + offset + limit + sql + params + env）
-    → 查 PerpetualCache（HashMap）
-    → 命中：直接返回
-    → 未命中：查 DB → 写入缓存 → 返回
+    -> 生成 CacheKey（statementId + offset + limit + sql + params + env）
+    -> 查 PerpetualCache（HashMap）
+    -> 命中：直接返回
+    -> 未命中：查 DB -> 写入缓存 -> 返回
 
 缓存失效时机：
 - 执行了 INSERT/UPDATE/DELETE（同 Session 内）
@@ -53,7 +53,7 @@ public class UserService {
     public void process(Long userId) {
         User u1 = userMapper.findById(userId);  // 查 DB，结果放入一级缓存
         User u2 = userMapper.findById(userId);  // 命中一级缓存，不查 DB
-        // u1 == u2（同一个对象引用！）← 危险：修改 u1 会影响 u2
+        // u1 == u2（同一个对象引用！）<- 危险：修改 u1 会影响 u2
     }
 }
 ```
@@ -195,7 +195,7 @@ User u = mapper.findById(1L);  // 一级缓存：{id:1, name:"Alice"}
 // UPDATE user SET name='Bob' WHERE id=1
 
 // 线程 A 再次读取，命中一级缓存，得到旧数据
-User u2 = mapper.findById(1L);  // ← 得到 "Alice"，但 DB 已是 "Bob"
+User u2 = mapper.findById(1L);  // <- 得到 "Alice"，但 DB 已是 "Bob"
 ```
 ### 坑 2：二级缓存跨 namespace 的脏读
 

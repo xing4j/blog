@@ -23,13 +23,13 @@ SaaS 系统要求每个租户只能访问自己的数据，最直接的做法是
 ```
 SQL 执行流程：
 Mapper.selectList()
-    ↓
+    v
 MybatisPlusInterceptor（拦截器链）
-    ↓
+    v
 TenantLineInnerInterceptor（多租户内部拦截器）
-    ↓
-JSQLParser 解析 SQL → 注入 WHERE tenant_id = #{currentTenantId}
-    ↓
+    v
+JSQLParser 解析 SQL -> 注入 WHERE tenant_id = #{currentTenantId}
+    v
 执行最终 SQL
 ```
 MyBatis Plus 使用 **JSQLParser** 解析 SQL 语法树，将租户条件注入到 WHERE、JOIN ON、INSERT 等子句中，无需修改任何业务代码。
@@ -162,7 +162,7 @@ public class OrderService {
 
     public List<Order> listOrders() {
         // 实际执行：SELECT * FROM orders WHERE tenant_id = 123
-        // ← 自动注入，业务层完全无感
+        // <- 自动注入，业务层完全无感
         return orderMapper.selectList(null);
     }
 }

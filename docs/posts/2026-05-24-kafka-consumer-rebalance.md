@@ -27,8 +27,8 @@ Consumer 看似简单（一个 `poll` 循环），但背后隐藏了 Rebalance �
 Kafka Consumer 采用 **Pull（拉取）** 模型：Consumer 主动向 Broker 发起 Fetch 请求，Broker 返回消息。
 
 ```
-Consumer ──Fetch(partition, offset, maxBytes)──► Leader Broker
-         ◄──Records──────────────────────────────
+Consumer --Fetch(partition, offset, maxBytes)--► Leader Broker
+         ◄--Records------------------------------
 ```
 
 **Pull 模型的优势**：

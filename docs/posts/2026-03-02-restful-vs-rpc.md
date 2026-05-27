@@ -172,16 +172,16 @@ UserResponse user = userStub.getUser(GetUserRequest.newBuilder().setId(1L).build
 
 ```
 对外 API（给第三方/前端）：
-→ RESTful + OpenAPI（Swagger）规范
-→ 易调试、通用性强、文档完善
+-> RESTful + OpenAPI（Swagger）规范
+-> 易调试、通用性强、文档完善
 
 内部微服务调用（高性能场景）：
-→ gRPC（强类型、性能好、双向流支持）
-→ Dubbo（Java 生态成熟，配置简单）
+-> gRPC（强类型、性能好、双向流支持）
+-> Dubbo（Java 生态成熟，配置简单）
 
 混合场景：
-→ Gateway 对外暴露 REST，内部用 gRPC/Dubbo
-→ Transcoder 做 REST-gRPC 自动转换
+-> Gateway 对外暴露 REST，内部用 gRPC/Dubbo
+-> Transcoder 做 REST-gRPC 自动转换
 ```
 
 ---

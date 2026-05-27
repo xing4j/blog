@@ -28,14 +28,14 @@ Kafka 号称"磁盘比内存还快"，背后依赖的是精心设计的存储结
 
 ```
 /kafka/data/
-└── order-created-0/          # Topic: order-created, Partition: 0
-    ├── 00000000000000000000.log      # 数据文件（消息本体）
-    ├── 00000000000000000000.index    # 偏移量索引（Offset → 物理位置）
-    ├── 00000000000000000000.timeindex # 时间戳索引（时间 → Offset）
-    ├── 00000000000000512000.log      # 第二个 Segment（从 offset=512000 开始）
-    ├── 00000000000000512000.index
-    ├── 00000000000000512000.timeindex
-    └── leader-epoch-checkpoint       # Leader Epoch 记录文件
++-- order-created-0/          # Topic: order-created, Partition: 0
+    +-- 00000000000000000000.log      # 数据文件（消息本体）
+    +-- 00000000000000000000.index    # 偏移量索引（Offset -> 物理位置）
+    +-- 00000000000000000000.timeindex # 时间戳索引（时间 -> Offset）
+    +-- 00000000000000512000.log      # 第二个 Segment（从 offset=512000 开始）
+    +-- 00000000000000512000.index
+    +-- 00000000000000512000.timeindex
+    +-- leader-epoch-checkpoint       # Leader Epoch 记录文件
 ```
 
 文件名即该 Segment 的**起始 Offset**，固定 20 位数字，不足补零。
@@ -107,7 +107,7 @@ RecordBatch:
 **查找 offset=400 的消息，步骤如下**：
 
 ```
-① 在 .index 文件中二分查找 ≤ 400 的最大索引项 → [offset=256, position=32768]
+① 在 .index 文件中二分查找 ≤ 400 的最大索引项 -> [offset=256, position=32768]
 ② 从 .log 文件的 position=32768 开始顺序扫描
 ③ 逐条比较 Offset，找到 offset=400 的消息
 ```
@@ -124,18 +124,18 @@ Kafka Consumer 拉取消息时，传统 I/O 链路需要 **4 次拷贝**：
 
 ```
 传统 I/O：
-磁盘 → 内核缓冲区（Page Cache）
-      → 用户空间缓冲区（read）
-      → 内核 Socket 缓冲区（write）
-      → 网络适配器（发送）
+磁盘 -> 内核缓冲区（Page Cache）
+      -> 用户空间缓冲区（read）
+      -> 内核 Socket 缓冲区（write）
+      -> 网络适配器（发送）
 ```
 
 Kafka 使用 `sendfile()` 系统调用实现零拷贝，减少到 **2 次拷贝**：
 
 ```
 Zero-Copy（sendfile）：
-磁盘 → 内核缓冲区（Page Cache）
-      → 网络适配器（直接 DMA 传输，跳过用户空间）
+磁盘 -> 内核缓冲区（Page Cache）
+      -> 网络适配器（直接 DMA 传输，跳过用户空间）
 ```
 
 **效果**：零拷贝可将网络传输吞吐量提升约 **50~200%**，同时大幅降低 CPU 使用率。这也是 Kafka Consumer 吞吐量能媲美生产者的核心原因之一。
@@ -167,9 +167,9 @@ Log Compaction（日志压实）：保留每个 Key 的**最新一条**消息，
 压实前：
   key=A, v=1
   key=B, v=2
-  key=A, v=3   ← A 的最新值
+  key=A, v=3   <- A 的最新值
   key=C, v=4
-  key=B, v=5   ← B 的最新值
+  key=B, v=5   <- B 的最新值
 
 压实后：
   key=A, v=3

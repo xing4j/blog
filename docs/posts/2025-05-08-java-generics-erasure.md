@@ -37,7 +37,7 @@ public class Box<T> {
 
 // 编译后的字节码（等效 Java 代码）
 public class Box {
-    private Object value;         // T → Object
+    private Object value;         // T -> Object
     public Object get() { return value; }
     public void set(Object value) { this.value = value; }
 }
@@ -52,7 +52,7 @@ public class NumberBox<T extends Number> {
 
 // 擦除后
 public class NumberBox {
-    public double doubleValue(Number n) { return n.doubleValue(); }  // T → Number（上界）
+    public double doubleValue(Number n) { return n.doubleValue(); }  // T -> Number（上界）
 }
 ```
 **编译器自动插入强转**：
@@ -170,7 +170,7 @@ nums.add(1);             // ✅ 写入安全
 Integer i = nums.get(0); // ❌ 读取不安全（只能拿到 Object）
 
 // PECS 原则：Producer Extends Consumer Super
-// 作为生产者（读取数据）→ extends；作为消费者（写入数据）→ super
+// 作为生产者（读取数据）-> extends；作为消费者（写入数据）-> super
 public static <T> void copy(List<? extends T> src, List<? super T> dst) {
     for (T item : src) dst.add(item);
 }

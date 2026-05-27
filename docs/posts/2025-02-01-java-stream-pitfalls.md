@@ -12,7 +12,7 @@ ull 引发 NPE……这些问题在代码 review 和生产事故中反复出现�
 理解 Stream 坑的关键，是先理解它的**惰性求值（Lazy Evaluation）**模型：
 
 ```
-数据源 → 中间操作（惰性）→ 终止操作（触发执行）
+数据源 -> 中间操作（惰性）-> 终止操作（触发执行）
          filter/map/...    forEach/collect/...
 
 中间操作不会立刻执行，只有终止操作被调用时，整条流水线才真正运行。
@@ -78,7 +78,7 @@ List<String> list = Arrays.asList("a,b", null, "c,d");
 
 // ❌ flatMap 中 stream 返回 null 会抛 NullPointerException
 List<String> flat = list.stream()
-        .flatMap(s -> s == null ? null : Arrays.stream(s.split(","))) // ❌ null → NPE
+        .flatMap(s -> s == null ? null : Arrays.stream(s.split(","))) // ❌ null -> NPE
         .collect(Collectors.toList());
 
 // ✅ 过滤 null 或返回 Stream.empty()

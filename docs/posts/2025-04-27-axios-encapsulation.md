@@ -35,7 +35,7 @@ const service = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// ─── 请求拦截器 ────────────────────────────────
+// --- 请求拦截器 --------------------------------
 service.interceptors.request.use(
   config => {
     // 1. 取消重复请求
@@ -58,7 +58,7 @@ service.interceptors.request.use(
   error => Promise.reject(error)
 )
 
-// ─── 响应拦截器 ────────────────────────────────
+// --- 响应拦截器 --------------------------------
 service.interceptors.response.use(
   response => {
     removePending(response.config) // 请求完成，移除记录

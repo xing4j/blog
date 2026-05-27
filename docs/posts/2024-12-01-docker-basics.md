@@ -10,7 +10,7 @@
 
 ```
 镜像（Image）      容器（Container）      仓库（Registry）
-    │                    │                      │
+    |                    |                      |
   只读模板           运行中的实例           镜像存储分发
   分层结构           可读写层叠加           Docker Hub/私有仓库
   可共享/复用        隔离的进程空间
@@ -24,10 +24,10 @@
 
 ```
 Dockerfile:
-  FROM ubuntu:22.04      → Layer 1: ubuntu 基础层（共享）
-  RUN apt-get update    → Layer 2: 软件包列表（可复用）
-  COPY app.jar /app/    → Layer 3: 应用文件（业务相关）
-  CMD ["java", "-jar"]  → 元数据（不产生层）
+  FROM ubuntu:22.04      -> Layer 1: ubuntu 基础层（共享）
+  RUN apt-get update    -> Layer 2: 软件包列表（可复用）
+  COPY app.jar /app/    -> Layer 3: 应用文件（业务相关）
+  CMD ["java", "-jar"]  -> 元数据（不产生层）
 
 优势：
 - 相同基础层在多个镜像间共享，节省磁盘空间

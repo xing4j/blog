@@ -7,26 +7,26 @@
 webpack 是基于 **打包（Bundle）** 模型的构建工具，核心流程如下：
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                      webpack Build Flow                      │
-│                                                              │
-│  entry.js                                                    │
-│     │                                                        │
-│     ▼                                                        │
-│  Dependency Analysis (Compilation)                           │
-│     │  Resolve all import/require chains                     │
-│     ▼                                                        │
-│  Build Module Graph                                          │
-│     │  Each module is transformed by loaders                 │
-│     ▼                                                        │
-│  Code Generation (Seal)                                      │
-│     │  Wrap modules into webpack runtime functions           │
-│     ▼                                                        │
-│  Output Bundle (Emit)                                        │
-│     │  Write dist/bundle.js                                  │
-│     ▼                                                        │
-│  Done                                                        │
-└──────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------+
+|                      webpack Build Flow                      |
+|                                                              |
+|  entry.js                                                    |
+|     |                                                        |
+|     v                                                        |
+|  Dependency Analysis (Compilation)                           |
+|     |  Resolve all import/require chains                     |
+|     v                                                        |
+|  Build Module Graph                                          |
+|     |  Each module is transformed by loaders                 |
+|     v                                                        |
+|  Code Generation (Seal)                                      |
+|     |  Wrap modules into webpack runtime functions           |
+|     v                                                        |
+|  Output Bundle (Emit)                                        |
+|     |  Write dist/bundle.js                                  |
+|     v                                                        |
+|  Done                                                        |
++--------------------------------------------------------------+
 ```
 
 > 阶段说明：依赖分析（Dependency Analysis）→ 模块图构建（Module Graph）→ 代码生成（Seal）→ bundle 输出（Emit）。
@@ -71,7 +71,7 @@ module.exports = {
 ```
 问题根源：启动时必须打包所有模块，才能启动开发服务器
 
-项目规模  →  模块数量  →  启动时间
+项目规模  ->  模块数量  ->  启动时间
 小型项目     ~100 模块     2-5s
 中型项目     ~1000 模块    15-30s
 大型项目     ~5000 模块    60-120s（甚至更长）
@@ -90,39 +90,39 @@ Vite 的核心思路：**不打包，直接利用浏览器原生 ES Module**。
 ```
 启动阶段（仅一次）：
   node_modules 中的 CJS/UMD 模块
-         │
-         ▼  esbuild（Go 语言编写，比 Babel 快 10-100 倍）
-         ▼
+         |
+         v  esbuild（Go 语言编写，比 Babel 快 10-100 倍）
+         v
   转换为 ESM 格式
-         │
-         ▼
+         |
+         v
   缓存到 .vite/deps/ 目录
 ```
 
 ```bash
 # 预构建缓存目录
 node_modules/.vite/deps/
-  ├── vue.js
-  ├── axios.js
-  ├── element-plus.js
-  └── _metadata.json  # 依赖哈希，用于判断是否需要重新预构建
+  +-- vue.js
+  +-- axios.js
+  +-- element-plus.js
+  +-- _metadata.json  # 依赖哈希，用于判断是否需要重新预构建
 ```
 
 **② 按需编译（On-Demand Compilation）**
 
 ```
 浏览器请求 http://localhost:5173/src/main.ts
-         │
-         ▼  Vite Dev Server
-         ▼
-  读取 src/main.ts → esbuild 编译 → 返回 ESM
-         │
-         ▼  浏览器解析 import 语句
-         ▼
+         |
+         v  Vite Dev Server
+         v
+  读取 src/main.ts -> esbuild 编译 -> 返回 ESM
+         |
+         v  浏览器解析 import 语句
+         v
   发出新的请求 /src/App.vue、/src/views/Home.vue ...
-         │
-         ▼  Vite 拦截并编译
-         ▼
+         |
+         v  Vite 拦截并编译
+         v
   只编译被请求的文件（按需）
 ```
 
@@ -130,14 +130,14 @@ node_modules/.vite/deps/
 
 ```
 webpack 冷启动：
-  ┌─────────────────────────────────────────┐
-  │  Bundle all modules → Start server         │  ⏱ 30-120s
-  └─────────────────────────────────────────┘
+  +-----------------------------------------+
+  |  Bundle all modules -> Start server         |  ⏱ 30-120s
+  +-----------------------------------------+
 
 Vite 冷启动：
-  ┌──────────────────────────────────────────────────────┐
-  │  esbuild pre-bundle deps (once) → Start → on-demand  │  ⏱ 0.3-2s
-  └──────────────────────────────────────────────────────┘
+  +------------------------------------------------------+
+  |  esbuild pre-bundle deps (once) -> Start -> on-demand  |  ⏱ 0.3-2s
+  +------------------------------------------------------+
 ```
 
 ---
@@ -154,7 +154,7 @@ Vite 冷启动：
 // 4. 客户端接收并替换模块
 
 // 问题：模块依赖链越长，HMR 越慢
-// App → Layout → Sidebar → MenuItem（修改此文件）
+// App -> Layout -> Sidebar -> MenuItem（修改此文件）
 // 需要重新编译整条链路上的所有模块
 ```
 
@@ -168,9 +168,9 @@ Vite 冷启动：
 // 4. 不影响其他模块
 
 // Vue SFC HMR 示例（自动支持）
-// 修改 <style> → 只更新样式，不刷新页面
-// 修改 <template> → 只更新组件模板
-// 修改 <script setup> → 重新执行 setup，保留状态（如可能）
+// 修改 <style> -> 只更新样式，不刷新页面
+// 修改 <template> -> 只更新组件模板
+// 修改 <script setup> -> 重新执行 setup，保留状态（如可能）
 
 // 手动注册 HMR（高级场景）
 if (import.meta.hot) {

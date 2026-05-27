@@ -49,15 +49,15 @@ Spring Boot 的目标：让 80% 的场景下，引入依赖即可用。
 
 ```
 @SpringBootApplication
-    ↓ 包含
+    v 包含
 @EnableAutoConfiguration
-    ↓ 导入
+    v 导入
 AutoConfigurationImportSelector
-    ↓ 读取
+    v 读取
 spring.factories / AutoConfiguration.imports（Spring Boot 3.x）
-    ↓ 过滤（@Conditional）
+    v 过滤（@Conditional）
 符合条件的 AutoConfiguration 类
-    ↓ 执行
+    v 执行
 注册所需的 Bean 到容器
 ```
 ### 2.1 入口：@EnableAutoConfiguration
@@ -66,7 +66,7 @@ spring.factories / AutoConfiguration.imports（Spring Boot 3.x）
 @SpringBootApplication
 // 等价于：
 @SpringBootConfiguration
-@EnableAutoConfiguration   // ← 自动装配的开关
+@EnableAutoConfiguration   // <- 自动装配的开关
 @ComponentScan
 ```
 ### 2.2 SPI 配置文件
@@ -133,15 +133,15 @@ public class RedisAutoConfiguration {
 
 ```
 rate-limit-spring-boot-starter/
-├── src/main/java/
-│   └── com/example/ratelimit/
-│       ├── RateLimitAutoConfiguration.java  ← 自动配置类
-│       ├── RateLimitProperties.java          ← 配置属性类
-│       └── RateLimitService.java             ← 核心服务
-└── src/main/resources/
-    └── META-INF/
-        └── spring/
-            └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
++-- src/main/java/
+|   +-- com/example/ratelimit/
+|       +-- RateLimitAutoConfiguration.java  <- 自动配置类
+|       +-- RateLimitProperties.java          <- 配置属性类
+|       +-- RateLimitService.java             <- 核心服务
++-- src/main/resources/
+    +-- META-INF/
+        +-- spring/
+            +-- org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 ### 3.2 配置属性类
 

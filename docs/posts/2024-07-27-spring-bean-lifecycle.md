@@ -49,32 +49,32 @@ Spring IoC 容器不仅负责创建 Bean，还要：
 
 ```
 Bean 定义加载（BeanDefinition 读取 XML / 注解）
-    ↓
+    v
 1.  BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry()
 2.  BeanFactoryPostProcessor.postProcessBeanFactory()
-    ↓
+    v
 实例化（Constructor / 工厂方法）
-    ↓
+    v
 3.  InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation()
 4.  [实例化]
 5.  InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation()
-    ↓
+    v
 属性填充（依赖注入）
-    ↓
+    v
 6.  BeanNameAware.setBeanName()
 7.  BeanClassLoaderAware.setBeanClassLoader()
 8.  BeanFactoryAware.setBeanFactory()
 9.  ApplicationContextAware.setApplicationContext()
-    ↓
-10. BeanPostProcessor.postProcessBeforeInitialization()   ← @PostConstruct 在这之中
-    ↓
+    v
+10. BeanPostProcessor.postProcessBeforeInitialization()   <- @PostConstruct 在这之中
+    v
 11. InitializingBean.afterPropertiesSet()
 12. @Bean(initMethod) 或 init-method
-    ↓
-13. BeanPostProcessor.postProcessAfterInitialization()   ← AOP 代理在此生成
-    ↓
+    v
+13. BeanPostProcessor.postProcessAfterInitialization()   <- AOP 代理在此生成
+    v
 [Bean 就绪，放入容器]
-    ↓
+    v
 14. [容器关闭] DisposableBean.destroy() / @Bean(destroyMethod)
 ```
 ---
@@ -175,7 +175,7 @@ public class LogBeanPostProcessor implements BeanPostProcessor {
 同一个 Bean 中，三种初始化方式的执行顺序：
 
 ```
-@PostConstruct → afterPropertiesSet() → initMethod
+@PostConstruct -> afterPropertiesSet() -> initMethod
 ```
 ```java
 @Component

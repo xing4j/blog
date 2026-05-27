@@ -40,13 +40,13 @@
 
 ```
 Without AOP:                   With AOP:
-┌──────────────┐              ┌──────────────┐
-│ Business Code│              │ Business Code│ <- focus on biz
-│ + Logging    │              └──────────────┘
-│ + Tx Code    │                      ↑
-│ + Auth Code  │              ┌───────────────┐
-└──────────────┘              │ Aspect (Cross)│ Log/Tx/Auth
-                              └───────────────┘
++--------------+              +--------------+
+| Business Code|              | Business Code| <- focus on biz
+| + Logging    |              +--------------+
+| + Tx Code    |                      ^
+| + Auth Code  |              +---------------+
++--------------+              | Aspect (Cross)| Log/Tx/Auth
+                              +---------------+
 ```
 Spring AOP 是**运行时代理**，不修改原始字节码，通过动态代理在方法调用前后插入逻辑。
 
@@ -60,9 +60,9 @@ Spring AOP 是**运行时代理**，不修改原始字节码，通过动态代�
 
 ```
 IUserService（接口）
-    ↑                ← 代理对象实现相同接口
-UserService（目标）  ← 被代理的真实对象
-    ↑
+    ^                <- 代理对象实现相同接口
+UserService（目标）  <- 被代理的真实对象
+    ^
 UserServiceProxy（JDK代理）
 ```
 ```java
@@ -84,8 +84,8 @@ IUserService proxy = (IUserService) Proxy.newProxyInstance(
 
 ```
 UserService（目标类）
-    ↑
-UserServiceDone: spring-bean-lifecycle.mdEnhancerByCGLIB（CGLIB生成的子类）← 代理对象
+    ^
+UserServiceDone: spring-bean-lifecycle.mdEnhancerByCGLIB（CGLIB生成的子类）<- 代理对象
 ```
 ```java
 // CGLIB 通过字节码库（ASM）在运行时生成目标类的子类

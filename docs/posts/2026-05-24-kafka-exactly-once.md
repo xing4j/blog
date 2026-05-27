@@ -60,9 +60,9 @@ Producer 启动时，向 Broker 申请唯一的 PID（Producer ID）
 Broker 端维护：
   Map<(PID, PartitionID), maxSequenceNumber>
   收到消息时：
-    若 SequenceNumber = maxSequenceNumber + 1 → 正常写入
-    若 SequenceNumber ≤ maxSequenceNumber    → 重复消息，丢弃
-    若 SequenceNumber > maxSequenceNumber + 1 → 消息乱序，拒绝并报错
+    若 SequenceNumber = maxSequenceNumber + 1 -> 正常写入
+    若 SequenceNumber ≤ maxSequenceNumber    -> 重复消息，丢弃
+    若 SequenceNumber > maxSequenceNumber + 1 -> 消息乱序，拒绝并报错
 ```
 
 ### 2.2 局限性
@@ -88,7 +88,7 @@ props.put("enable.idempotence", "true");  // 开启幂等性
 
 ```
 场景：Kafka Streams 处理任务
-  读取 Topic-A 的消息 → 处理 → 写入 Topic-B
+  读取 Topic-A 的消息 -> 处理 -> 写入 Topic-B
   同时提交 Consumer Offset（写入 __consumer_offsets）
 
 原子性要求：
@@ -107,28 +107,28 @@ Transaction Coordinator（事务协调器）是 Broker 内的一个组件，每�
 
 ```
 ① 事务初始化
-   Producer → Coordinator: initTransactions(transactional.id)
-   Coordinator → Producer: 返回 PID + producerEpoch
+   Producer -> Coordinator: initTransactions(transactional.id)
+   Coordinator -> Producer: 返回 PID + producerEpoch
 
 ② 开启事务
    Producer: beginTransaction()（本地标记，无网络请求）
 
 ③ 发送消息（多 Partition）
-   Producer → Broker-A: 发送 msg 到 TopicB-P0（标记为事务消息）
-   Producer → Coordinator: AddPartitionsToTxn（登记参与事务的分区）
-   Producer → Broker-B: 发送 msg 到 TopicB-P1（标记为事务消息）
+   Producer -> Broker-A: 发送 msg 到 TopicB-P0（标记为事务消息）
+   Producer -> Coordinator: AddPartitionsToTxn（登记参与事务的分区）
+   Producer -> Broker-B: 发送 msg 到 TopicB-P1（标记为事务消息）
 
 ④ 提交 Offset（可选，Kafka Streams 场景）
-   Producer → Coordinator: sendOffsetsToTransaction(offsets, groupId)
-   Coordinator → GroupCoordinator: 写入 offset 到 __consumer_offsets（标记为事务消息）
+   Producer -> Coordinator: sendOffsetsToTransaction(offsets, groupId)
+   Coordinator -> GroupCoordinator: 写入 offset 到 __consumer_offsets（标记为事务消息）
 
 ⑤ 提交事务
-   Producer → Coordinator: commitTransaction()
+   Producer -> Coordinator: commitTransaction()
    Coordinator 向所有参与分区的 Broker 发送 WriteTxnMarkers（COMMIT 标记）
    各 Broker 写入 COMMIT 标记后，事务消息对 Consumer 可见
 
 ⑥ （或）回滚事务
-   Producer → Coordinator: abortTransaction()
+   Producer -> Coordinator: abortTransaction()
    Coordinator 向所有参与 Broker 发送 WriteTxnMarkers（ABORT 标记）
    各 Broker 写入 ABORT 标记，事务消息对 Consumer 永不可见
 ```

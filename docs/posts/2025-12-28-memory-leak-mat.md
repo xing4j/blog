@@ -36,7 +36,7 @@ jcmd <PID> GC.heap_dump /tmp/heap.hprof
 1. Overview
    - Heap Size：总堆大小
    - Number of Objects：对象数量
-   - 点击 "Leak Suspects"（泄漏嫌疑报告）→ 自动分析最可能泄漏的对象
+   - 点击 "Leak Suspects"（泄漏嫌疑报告）-> 自动分析最可能泄漏的对象
 
 2. Dominator Tree（支配树）
    - 按对象占用内存从大到小排列
@@ -46,7 +46,7 @@ jcmd <PID> GC.heap_dump /tmp/heap.hprof
 3. Histogram（类直方图）
    - 按类型统计对象数量和内存
    - 过滤自定义类（com.example.*）
-   - 数量异常多的对象 → 泄漏候选
+   - 数量异常多的对象 -> 泄漏候选
 
 4. OQL（类似 SQL 的查询语言）
    SELECT * FROM java.util.HashMap$Entry WHERE key.toString().startsWith("session:")
@@ -133,10 +133,10 @@ try (Connection conn = dataSource.getConnection();
 案例：发现 HashMap$Entry 对象数量异常（Histogram 显示100万+）
 
 步骤：
-1. Histogram → 过滤 "Entry" → 发现 HashMap$Entry 占用 2GB
-2. 右键 → "List Objects" → with incoming references（谁引用了它）
+1. Histogram -> 过滤 "Entry" -> 发现 HashMap$Entry 占用 2GB
+2. 右键 -> "List Objects" -> with incoming references（谁引用了它）
 3. 发现被 com.example.SessionCache 持有
-4. Dominator Tree → 找到 SessionCache → 展开 → 看里面是什么
+4. Dominator Tree -> 找到 SessionCache -> 展开 -> 看里面是什么
 
 定位：SessionCache 使用 HashMap 存储 Session，key 是 sessionId
 问题：Session 过期后没有从 Map 中移除，导致无限增长

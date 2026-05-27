@@ -25,24 +25,24 @@ Nacos（Dynamic Naming and Configuration Service）是阿里巴巴开源的服�
 ## 一、Nacos 整体架构
 
 ```
-                    ┌─────────────────────────────┐
-                    │         Nacos Server         │
-                    │                              │
-                    │  ┌────────────┐  ┌────────┐  │
-                    │  │ Registry   │  │Config  │  │
-                    │  │ Naming     │  │Config  │  │
-                    │  └────────────┘  └────────┘  │
-                    │  ┌──────────────────────────┐ │
-                    │  │ Persistence: MySQL/Derby  │ │
-                    │  └──────────────────────────┘ │
-                    └──────────────┬──────────────┘
-                         ↑心跳      │推送变更
-            ┌────────────┘          └────────────┐
-            │                                    │
-   ┌────────▼──────────┐              ┌──────────▼──────────┐
-   │   Service A       │              │    Service B         │
-   │ (Provider/Consumer│              │  (Consumer)          │
-   └───────────────────┘              └─────────────────────┘
+                    +-----------------------------+
+                    |         Nacos Server         |
+                    |                              |
+                    |  +------------+  +--------+  |
+                    |  | Registry   |  |Config  |  |
+                    |  | Naming     |  |Config  |  |
+                    |  +------------+  +--------+  |
+                    |  +--------------------------+ |
+                    |  | Persistence: MySQL/Derby  | |
+                    |  +--------------------------+ |
+                    +--------------+--------------+
+                         ^心跳      |推送变更
+            +------------+          +------------+
+            |                                    |
+   +--------v----------+              +----------v----------+
+   |   Service A       |              |    Service B         |
+   | (Provider/Consumer|              |  (Consumer)          |
+   +-------------------+              +---------------------+
 ```
 
 ---
@@ -53,7 +53,7 @@ Nacos（Dynamic Naming and Configuration Service）是阿里巴巴开源的服�
 
 ```
 1. 服务启动时，NacosAutoServiceRegistration 触发注册
-   Service → POST /nacos/v1/ns/instance
+   Service -> POST /nacos/v1/ns/instance
    请求体：{ip, port, serviceName, group, namespace, weight, metadata}
 
 2. Nacos Server 存储实例信息
@@ -62,8 +62,8 @@ Nacos（Dynamic Naming and Configuration Service）是阿里巴巴开源的服�
 
 3. 心跳保活（临时实例）
    Client 每 5s 发送一次心跳：PUT /nacos/v1/ns/instance/beat
-   Server 15s 未收到心跳 → 标记为不健康
-   Server 30s 未收到心跳 → 剔除实例
+   Server 15s 未收到心跳 -> 标记为不健康
+   Server 30s 未收到心跳 -> 剔除实例
 ```
 
 ### 2.2 服务发现流程
@@ -327,26 +327,26 @@ public class UserService {
 ### 5.1 三级隔离机制
 
 ```
-Namespace（命名空间）→ Group（分组）→ DataId（配置文件）
+Namespace（命名空间）-> Group（分组）-> DataId（配置文件）
 
 推荐的隔离策略：
-┌──────────────────────────────────────────────────────────┐
-│  Namespace: env isolation (data fully isolated per ns)   │
-│  ├── dev      (development env)                          │
-│  ├── test     (testing env)                              │
-│  ├── staging  (pre-production env)                       │
-│  └── prod     (production env)                           │
-│                                                          │
-│  Group: business-line / project isolation                │
-│  ├── ORDER_GROUP   (order business line)                 │
-│  ├── USER_GROUP    (user business line)                  │
-│  └── DEFAULT_GROUP (shared/public config)                │
-│                                                          │
-│  DataId: specific service config                         │
-│  ├── user-service.yaml                                   │
-│  ├── user-service-dev.yaml  (env-specific config)        │
-│  └── common-db.yaml         (shared config)              │
-└──────────────────────────────────────────────────────────┘
++----------------------------------------------------------+
+|  Namespace: env isolation (data fully isolated per ns)   |
+|  +-- dev      (development env)                          |
+|  +-- test     (testing env)                              |
+|  +-- staging  (pre-production env)                       |
+|  +-- prod     (production env)                           |
+|                                                          |
+|  Group: business-line / project isolation                |
+|  +-- ORDER_GROUP   (order business line)                 |
+|  +-- USER_GROUP    (user business line)                  |
+|  +-- DEFAULT_GROUP (shared/public config)                |
+|                                                          |
+|  DataId: specific service config                         |
+|  +-- user-service.yaml                                   |
+|  +-- user-service-dev.yaml  (env-specific config)        |
+|  +-- common-db.yaml         (shared config)              |
++----------------------------------------------------------+
 ```
 
 ### 5.2 命名空间隔离配置
@@ -406,12 +406,12 @@ db.password.0=nacos_password
 Nacos 集群架构：
 
        负载均衡（VIP）
-           │
-    ┌──────┼──────┐
-    ▼      ▼      ▼
- Nacos1 Nacos2 Nacos3  ← Raft 协议选主
-    └──────┼──────┘
-           │
+           |
+    +------+------+
+    v      v      v
+ Nacos1 Nacos2 Nacos3  <- Raft 协议选主
+    +------+------+
+           |
         MySQL（持久化）
 ```
 

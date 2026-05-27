@@ -89,7 +89,7 @@ LLEN queue                       # 长度
 ```
 消息队列模式（RPUSH + BLPOP）：
 生产者：RPUSH tasks "job1"
-消费者：BLPOP tasks 0  ← 阻塞等待，有消息立即返回
+消费者：BLPOP tasks 0  <- 阻塞等待，有消息立即返回
 
 时间线/最新消息模式（LPUSH + LRANGE + LTRIM）：
 每次发布新文章：LPUSH user:1:articles articleId
@@ -128,7 +128,7 @@ ZSet 是带权重（score）的有序集合，每个成员对应一个 double �
 ZADD leaderboard 9800 "Alice"   # 添加分数
 ZADD leaderboard 9500 "Bob"
 ZADD leaderboard 9900 "Charlie"
-ZINCRBY leaderboard 200 "Alice"  # Alice 加 200 分 → 10000
+ZINCRBY leaderboard 200 "Alice"  # Alice 加 200 分 -> 10000
 
 ZREVRANGE leaderboard 0 9 WITHSCORES    # 排名前10（高分在前）
 ZREVRANK leaderboard "Alice"             # Alice 的排名（从0开始）
@@ -139,9 +139,9 @@ ZRANGEBYSCORE leaderboard 9000 10000    # 9000~10000 分的玩家
 
 ```
 跳表结构（简化）：
-Level 3: 1 --------→ 9
-Level 2: 1 ---→ 4 --→ 9
-Level 1: 1 → 2 → 4 → 5 → 9
+Level 3: 1 ---------> 9
+Level 2: 1 ----> 4 ---> 9
+Level 1: 1 -> 2 -> 4 -> 5 -> 9
 ```
 **典型场景**：游戏排行榜、热搜词排序、带权重的任务调度
 

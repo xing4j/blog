@@ -13,25 +13,25 @@ RocketMQ 在普通消息基础上提供了两个强大的特性：延迟消息�
 RocketMQ 不支持任意时间的延迟，而是预设了 **18 个固定延迟级别**：
 
 ```
-delayLevel → 延迟时间
-1  → 1s
-2  → 5s
-3  → 10s
-4  → 30s
-5  → 1min
-6  → 2min
-7  → 3min
-8  → 4min
-9  → 5min
-10 → 6min
-11 → 7min
-12 → 8min
-13 → 9min
-14 → 10min
-15 → 20min
-16 → 30min
-17 → 1h
-18 → 2h
+delayLevel -> 延迟时间
+1  -> 1s
+2  -> 5s
+3  -> 10s
+4  -> 30s
+5  -> 1min
+6  -> 2min
+7  -> 3min
+8  -> 4min
+9  -> 5min
+10 -> 6min
+11 -> 7min
+12 -> 8min
+13 -> 9min
+14 -> 10min
+15 -> 20min
+16 -> 30min
+17 -> 1h
+18 -> 2h
 ```
 
 在 `broker.conf` 中可以自定义延迟级别：
@@ -45,17 +45,17 @@ messageDelayLevel=1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
 
 ```
 Producer 发送延迟消息
-         ↓
+         v
 Broker 收到消息，检测到 delayLevel > 0
-         ↓
+         v
 将消息存入内部 Topic：SCHEDULE_TOPIC_XXXX
 （Partition = delayLevel - 1）
-         ↓
+         v
 ScheduleMessageService 定时扫描
 （每秒检查各延迟 Topic 的消息是否到期）
-         ↓
+         v
 到期后，将消息转存回原始 Topic
-         ↓
+         v
 Consumer 正常消费原始 Topic
 ```
 
@@ -204,30 +204,30 @@ public class OrderTimeoutConsumer implements RocketMQListener<String> {
 ### 3.1 两阶段提交流程
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │         Transaction Message Flow           │
-                    └─────────────────────────────────────────┘
+                    +-----------------------------------------+
+                    |         Transaction Message Flow           |
+                    +-----------------------------------------+
                     
 Step 1: Producer 发送 Half Message（半消息）
-Producer ──────────────────────────────→ Broker
+Producer -------------------------------> Broker
         "我要发消息，但先别投递给Consumer"
         
 Step 2: Broker 存储半消息，返回 ACK
-Broker ─────────────────────────────────→ Producer
+Broker ----------------------------------> Producer
        "好的，半消息已收到"
 
 Step 3: Producer 执行本地事务
 Producer: 执行数据库操作（扣减库存/创建订单...）
         
 Step 4: Producer 发送本地事务结果
-Producer ──────────────────────────────→ Broker
+Producer -------------------------------> Broker
          COMMIT（提交）或 ROLLBACK（回滚）
          
-Step 5a: COMMIT → Broker 投递消息给 Consumer
-Step 5b: ROLLBACK → Broker 删除半消息
+Step 5a: COMMIT -> Broker 投递消息给 Consumer
+Step 5b: ROLLBACK -> Broker 删除半消息
 
 Step 6: 如果 Producer 未响应（宕机/超时）
-Broker ─────────────────────────────────→ Producer
+Broker ----------------------------------> Producer
        发起事务回查（checkLocalTransaction）
 ```
 
@@ -239,10 +239,10 @@ Broker ────────────────────────�
   TopicA/queue1
 
 事务半消息存储在特殊 Topic：
-  RMQ_SYS_TRANS_HALF_TOPIC/queue0  ← 半消息存这里
+  RMQ_SYS_TRANS_HALF_TOPIC/queue0  <- 半消息存这里
 
 提交后，消息从半消息 Topic 转移到原始 Topic：
-  TopicA/queue0  ← 消息真正可被消费
+  TopicA/queue0  <- 消息真正可被消费
 ```
 
 ---

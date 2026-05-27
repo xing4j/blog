@@ -29,7 +29,7 @@
       = f(批量大小, 压缩率, 网络带宽, 磁盘 I/O, 副本同步延迟)
 
 瓶颈排查顺序：
-  Producer 批量不足 → Broker I/O 线程不足 → 网络带宽打满 → 磁盘写入饱和
+  Producer 批量不足 -> Broker I/O 线程不足 -> 网络带宽打满 -> 磁盘写入饱和
 ```
 
 ---
@@ -105,9 +105,9 @@ queued.max.requests=500
 
 ```shell
 # 监控 Kafka JMX 指标
-# I/O 线程利用率超过 80% → 增加 num.io.threads
+# I/O 线程利用率超过 80% -> 增加 num.io.threads
 kafka.server:type=KafkaRequestHandlerPool,name=RequestHandlerAvgIdlePercent
-# 网络线程利用率超过 80% → 增加 num.network.threads
+# 网络线程利用率超过 80% -> 增加 num.network.threads
 kafka.network:type=Processor,name=IdlePercent,networkProcessor=*
 ```
 

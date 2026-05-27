@@ -128,13 +128,13 @@ ALTER TABLE orders ADD INDEX idx_user_create(user_id, create_time);
 -- INT=4字节，VARCHAR(50)=50*3+2=152字节（utf8mb4），允许NULL+1字节
 
 EXPLAIN SELECT * FROM t WHERE a = 1;
--- key_len = 5（INT 4 + NULL标识 1）← 只用了第一列
+-- key_len = 5（INT 4 + NULL标识 1）<- 只用了第一列
 
 EXPLAIN SELECT * FROM t WHERE a = 1 AND b = 'x';
--- key_len = 158（5 + 153）← 用了前两列
+-- key_len = 158（5 + 153）<- 用了前两列
 
 EXPLAIN SELECT * FROM t WHERE a = 1 AND b = 'x' AND c = 2;
--- key_len = 163 ← 用了全部三列
+-- key_len = 163 <- 用了全部三列
 ```
 通过 key_len 可以精确判断复合索引用了几个列。
 

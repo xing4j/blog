@@ -36,10 +36,10 @@ UUID 完全随机，作为 InnoDB 主键会导致**页分裂（Page Split）**�
 
 ```
 自增 ID 总是插入最右侧叶子节点，无需移动已有数据：
-  [1][2][3][4] ──▶ 插入5 ──▶ [1][2][3][4][5]  ✅ 追加
+  [1][2][3][4] --> 插入5 --> [1][2][3][4][5]  ✅ 追加
 
 UUID 随机，可能插入叶子节点中间，页满时触发分裂：
-  [a1][a5][b3][c2] ──▶ 插入a3 ──▶ 页满 ──▶ 分裂  ⚠️
+  [a1][a5][b3][c2] --> 插入a3 --> 页满 --> 分裂  ⚠️
 ```
 
 测试数据：500 万行表，UUID 主键的写入 TPS 约为自增 ID 的 **30-50%**，索引空间多占用 **1.5-2 倍**。
@@ -57,10 +57,10 @@ Twitter 2010 年开源的 64 位 ID 生成算法：
 
 ```
  bit 0    bit 1~41              bit 42~51       bit 52~63
-┌──────┬──────────────────────┬───────────────┬────────────┐
-│  0   │  41-bit Timestamp(ms)│ 10-bit NodeID  │ 12-bit Seq │
-│Sign  │Relative epoch, ~69yr │ DC(5)+Work(5) │ 4096 per ms│
-└──────┴──────────────────────┴───────────────┴────────────┘
++------+----------------------+---------------+------------+
+|  0   |  41-bit Timestamp(ms)| 10-bit NodeID  | 12-bit Seq |
+|Sign  |Relative epoch, ~69yr | DC(5)+Work(5) | 4096 per ms|
++------+----------------------+---------------+------------+
 ```
 
 ### 3.1 完整实现
@@ -133,8 +133,8 @@ public class Snowflake {
 
 ```
 T=1000ms 生成 ID: [1000ms][worker1][seq=5]
-NTP 调整 ──▶ 当前时间变为 T=997ms
-T=997ms  生成 ID: [997ms][worker1][seq=0]  ← 与之前 [997ms] 的 ID 可能重复！
+NTP 调整 --> 当前时间变为 T=997ms
+T=997ms  生成 ID: [997ms][worker1][seq=0]  <- 与之前 [997ms] 的 ID 可能重复！
 ```
 
 **生产级解决方案（百度 UidGenerator）**：将时间戳改为 28 位秒级，workerId 由 DB 自动分配（22 位，支持 400 万节点），每次 JVM 启动重新申请 workerId，从根本上消除重复风险。
@@ -174,7 +174,7 @@ CREATE TABLE `id_alloc` (
 // 取号段（乐观锁防并发）
 UPDATE id_alloc SET max_id = max_id + step WHERE biz_tag = 'order';
 SELECT * FROM id_alloc WHERE biz_tag = 'order';
-// 返回 max_id=2000, step=1000 → 当前号段 [1001, 2000]，内存从 1001 顺序递增
+// 返回 max_id=2000, step=1000 -> 当前号段 [1001, 2000]，内存从 1001 顺序递增
 ```
 
 ### 4.2 双 Buffer 机制
@@ -182,9 +182,9 @@ SELECT * FROM id_alloc WHERE biz_tag = 'order';
 单 buffer 问题：号段用完时需同步访问 DB，这瞬间所有请求等待，P99 抖动。
 
 ```
-Buffer A: [1001, 2000) ── 当前使用 ──▶ 使用到 90% 时触发
-                                     ↓ 异步预取
-Buffer B: [2001, 3000) ── 后台预取 ──▶ A 耗尽后无缝切换
+Buffer A: [1001, 2000) -- 当前使用 --> 使用到 90% 时触发
+                                     v 异步预取
+Buffer B: [2001, 3000) -- 后台预取 --> A 耗尽后无缝切换
 ```
 
 ```java
@@ -256,12 +256,12 @@ String orderId = "ORD" + date + String.format("%08d", seq);
 
 ```
 需要数据库主键？
-├── 否（traceId/幂等key/token）→ UUID ✅
-└── 是
-    ├── 中小项目，快速实现，可接受 Redis 风险？→ Redis INCR
-    ├── 需要业务前缀（ORD20260522...）？       → 号段模式（美团 Leaf）
-    ├── 高并发 + K8s StatefulSet？              → 雪花算法（取 Pod 序号为 workerId）
-    └── 高并发 + 无状态 Pod，不想维护 workerId？→ 百度 UidGenerator（DB 自动分配）
++-- 否（traceId/幂等key/token）-> UUID ✅
++-- 是
+    +-- 中小项目，快速实现，可接受 Redis 风险？-> Redis INCR
+    +-- 需要业务前缀（ORD20260522...）？       -> 号段模式（美团 Leaf）
+    +-- 高并发 + K8s StatefulSet？              -> 雪花算法（取 Pod 序号为 workerId）
+    +-- 高并发 + 无状态 Pod，不想维护 workerId？-> 百度 UidGenerator（DB 自动分配）
 ```
 
 ---

@@ -38,11 +38,11 @@ JDK 6 对 synchronized 做了大幅优化（锁升级、偏向锁、自旋锁）
 JDK 6 引入了**锁升级**机制，synchronized 不再直接进入重量级锁，而是经过以下四个状态渐进升级：
 
 ```
-无锁 → 偏向锁 → 轻量级锁 → 重量级锁
-  │         │            │           │
-  │ 1 thread  │ contention  │ OS blocked│
-  │  no cost  │ CAS spin    │  OS kernel│
-  └─→ MarkWord 中存储持有线程 ID
+无锁 -> 偏向锁 -> 轻量级锁 -> 重量级锁
+  |         |            |           |
+  | 1 thread  | contention  | OS blocked|
+  |  no cost  | CAS spin    |  OS kernel|
+  +--> MarkWord 中存储持有线程 ID
 ```
 - **偏向锁**：第一个加锁的线程将自己的 ThreadID 写入对象 MarkWord，后续再次加锁仅检查 ID，无 CAS 操作
 - **轻量级锁**：多线程竞争时，通过 CAS 将锁记录指针写入 MarkWord，自旋等待，不挂起线程
@@ -55,12 +55,12 @@ JDK 6 引入了**锁升级**机制，synchronized 不再直接进入重量级锁
 ReentrantLock 内部维护一个 AQS 同步状态（state）和一个 CLH 变体等待队列：
 
 ```
-state = 0         → 锁未持有
-state = 1         → 锁已持有（重入时 state 递增）
-state = n（n>1）  → 同一线程重入了 n 次
+state = 0         -> 锁未持有
+state = 1         -> 锁已持有（重入时 state 递增）
+state = n（n>1）  -> 同一线程重入了 n 次
 
 等待队列（双向链表）：
-Head ←→ Node(Thread-A) ←→ Node(Thread-B) ←→ Tail
+Head <--> Node(Thread-A) <--> Node(Thread-B) <--> Tail
          （等待中）            （等待中）
 ```
 lock() 首先 CAS 尝试将 state 从 0 改为 1，失败则将当前线程封装为 Node 入队，调用 LockSupport.park() 挂起。unlock() 释放锁后，找到队列中的下一个节点，LockSupport.unpark() 唤醒。
@@ -184,12 +184,12 @@ ReentrantLock fairLock = new ReentrantLock(true);
 ## 五、如何选择
 
 ```
-需要可中断等待？                           → ReentrantLock.lockInterruptibly()
-需要超时尝试？                             → ReentrantLock.tryLock(timeout)
-需要非阻塞尝试？                           → ReentrantLock.tryLock()
-需要多个等待条件（精确唤醒）？              → ReentrantLock + Condition
-需要公平锁？                               → ReentrantLock(true)
-以上都不需要，只需互斥 + 简单等待唤醒？    → synchronized（代码更简洁）
+需要可中断等待？                           -> ReentrantLock.lockInterruptibly()
+需要超时尝试？                             -> ReentrantLock.tryLock(timeout)
+需要非阻塞尝试？                           -> ReentrantLock.tryLock()
+需要多个等待条件（精确唤醒）？              -> ReentrantLock + Condition
+需要公平锁？                               -> ReentrantLock(true)
+以上都不需要，只需互斥 + 简单等待唤醒？    -> synchronized（代码更简洁）
 ```
 **通用建议**：默认用 synchronized，代码简洁、IDE 支持好、不会忘记 unlock。需要以上高级特性时升级为 ReentrantLock。
 

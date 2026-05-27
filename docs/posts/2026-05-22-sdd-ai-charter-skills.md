@@ -1,4 +1,4 @@
-<div class="post-meta">📅 2026-05-22 &nbsp;|&nbsp; 🏷️ AI</div>
+﻿<div class="post-meta">📅 2026-05-22 &nbsp;|&nbsp; 🏷️ AI</div>
 
 # SDD、宪章与 Skill：AI 辅助开发的工程方法论全景
 
@@ -30,21 +30,21 @@
 
 ```
 需求/想法
-   │
-   ▼
-Constitution（宪章）← 项目全局约束、架构原则、质量标准
-   │
-   ▼
-Spec（规格说明）← 用户故事、验收标准、功能/非功能需求、边界条件
-   │
-   ▼
-Plan（技术方案）← 架构决策、模块划分、技术选型、实现路径
-   │
-   ▼
-Tasks（任务清单）← 可执行的原子任务，每条对应一段代码改动
-   │
-   ▼
-Implement（AI 实现）← 逐任务驱动 Copilot/Claude 生成代码
+   |
+   v
+Constitution（宪章）<- 项目全局约束、架构原则、质量标准
+   |
+   v
+Spec（规格说明）<- 用户故事、验收标准、功能/非功能需求、边界条件
+   |
+   v
+Plan（技术方案）<- 架构决策、模块划分、技术选型、实现路径
+   |
+   v
+Tasks（任务清单）<- 可执行的原子任务，每条对应一段代码改动
+   |
+   v
+Implement（AI 实现）<- 逐任务驱动 Copilot/Claude 生成代码
 ```
 
 ### 2.3 GitHub Spec Kit
@@ -65,12 +65,12 @@ specify init --here --ai copilot --script ps
 ```
 .specify/
   memory/
-    constitution.md     ← 项目宪章（全局约束）
+    constitution.md     <- 项目宪章（全局约束）
 specs/
   <feature-name>/
-    spec.md             ← 功能规格说明
-    plan.md             ← 技术实现方案
-    tasks.md            ← 任务清单
+    spec.md             <- 功能规格说明
+    plan.md             <- 技术实现方案
+    tasks.md            <- 任务清单
 ```
 
 **在 Copilot Chat 中使用（`/speckit.*` 工作流）：**
@@ -183,8 +183,8 @@ specs/
 #### Cursor — `.cursor/rules/`
 
 ```
-位置：.cursor/rules/*.mdc     ← 推荐（支持 glob 匹配）
-      .cursorrules            ← 旧版，全局生效
+位置：.cursor/rules/*.mdc     <- 推荐（支持 glob 匹配）
+      .cursorrules            <- 旧版，全局生效
 ```
 
 **特点：**
@@ -245,12 +245,12 @@ Skill 来自 GitHub Copilot 在 VS Code 中逐步构建的"Agent 定制体系"�
 
 ```
 定制原语体系
-├── copilot-instructions.md  → 全局始终生效的指令（宪章）
-├── *.instructions.md        → 文件级按需指令
-├── *.prompt.md              → 单次任务提示词
-├── *.agent.md               → 自定义子 Agent
-├── hooks/*.json             → 生命周期钩子（确定性行为）
-└── skills/<name>/SKILL.md  → 可复用工作流（Skill）← 本节重点
++-- copilot-instructions.md  -> 全局始终生效的指令（宪章）
++-- *.instructions.md        -> 文件级按需指令
++-- *.prompt.md              -> 单次任务提示词
++-- *.agent.md               -> 自定义子 Agent
++-- hooks/*.json             -> 生命周期钩子（确定性行为）
++-- skills/<name>/SKILL.md  -> 可复用工作流（Skill）<- 本节重点
 ```
 
 Skill 解决的问题是：某些工作流**太复杂**（多步骤、需要配套文件），不适合写进全局宪章（会占用过多上下文），也不是一次性任务（不值得写成 prompt）。
@@ -261,10 +261,10 @@ Skill 解决的问题是：某些工作流**太复杂**（多步骤、需要配�
 .github/
   skills/
     <skill-name>/
-      SKILL.md          ← 核心：工作流说明
-      templates/        ← 可选：模板文件
-      scripts/          ← 可选：辅助脚本
-      examples/         ← 可选：示例文件
+      SKILL.md          <- 核心：工作流说明
+      templates/        <- 可选：模板文件
+      scripts/          <- 可选：辅助脚本
+      examples/         <- 可选：示例文件
 ```
 
 ### 4.4 `SKILL.md` 的结构
@@ -303,11 +303,11 @@ Skill 不通过命令触发，而通过**语义匹配**触发：
 
 ```
 用户说："帮我创建一个新的 MCP 服务"
-        ↓
+        v
 Copilot 扫描所有 Skill 的 description 字段
-        ↓
+        v
 发现 mcp-builder/SKILL.md 的 description 包含 "MCP server" 等语义
-        ↓
+        v
 自动读取 SKILL.md 内容，按步骤执行
 ```
 
@@ -377,24 +377,24 @@ description: "Use when: 用户要新建一个 REST API 接口、新增 Controlle
 ## 五、三者的关系与协作
 
 ```
-                    ┌─────────────────────────┐
-                    │  Charter / Instructions  │
-                    │  copilot-instructions.md │  ← 全程约束所有 AI 行为
-                    │      CLAUDE.md           │
-                    └───────────┬─────────────┘
-                                │ 提供全局上下文
-                    ┌───────────▼─────────────┐
-                    │     SDD Workflow         │
-  用户提需求 ──────► │  Constitution → Spec     │  ← Spec Kit 驱动
-                    │  → Plan → Tasks          │
-                    └───────────┬─────────────┘
-                                │ 生成任务
-                    ┌───────────▼─────────────┐
-                    │         Skills           │
-                    │  create-api-endpoint     │  ← 逐任务按 Skill 执行
-                    │  setup-module            │
-                    │  ...                     │
-                    └─────────────────────────┘
+                    +-------------------------+
+                    |  Charter / Instructions  |
+                    |  copilot-instructions.md |  <- 全程约束所有 AI 行为
+                    |      CLAUDE.md           |
+                    +-----------+-------------+
+                                | 提供全局上下文
+                    +-----------v-------------+
+                    |     SDD Workflow         |
+  用户提需求 ------► |  Constitution -> Spec     |  <- Spec Kit 驱动
+                    |  -> Plan -> Tasks          |
+                    +-----------+-------------+
+                                | 生成任务
+                    +-----------v-------------+
+                    |         Skills           |
+                    |  create-api-endpoint     |  <- 逐任务按 Skill 执行
+                    |  setup-module            |
+                    |  ...                     |
+                    +-------------------------+
 ```
 
 **最佳实践：**
@@ -412,7 +412,7 @@ description: "Use when: 用户要新建一个 REST API 接口、新增 Controlle
 □ 创建 .github/copilot-instructions.md（项目宪章）
 □ 填写技术栈约束、代码规范、禁止操作
 □ 安装 specify CLI，初始化 .specify/ 目录
-□ 为下一个新功能跑一遍 SDD 流程（spec → plan → tasks）
+□ 为下一个新功能跑一遍 SDD 流程（spec -> plan -> tasks）
 □ 识别团队中重复 3 次以上的工作流，封装成 Skill
 □ 如使用 Claude Code，维护项目根目录的 CLAUDE.md
 ```

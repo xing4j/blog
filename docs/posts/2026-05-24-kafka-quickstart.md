@@ -35,10 +35,10 @@
 引入 Kafka 后，订单服务只管写一条消息，下游各自异步消费，彻底解耦：
 
 ```
-订单服务 ──写消息──► Kafka Topic
-                        ├──► 库存服务（异步消费）
-                        ├──► 积分服务（异步消费）
-                        └──► 短信服务（异步消费）
+订单服务 --写消息--► Kafka Topic
+                        +--► 库存服务（异步消费）
+                        +--► 积分服务（异步消费）
+                        +--► 短信服务（异步消费）
 ```
 
 ### 1.2 Kafka 的核心定位
@@ -54,9 +54,9 @@ Kafka 由 LinkedIn 于 2011 年开源，现归属 Apache 基金会，定位是**
 理解 Kafka 只需掌握这 7 个术语，它们构成了整个体系的骨架：
 
 ```
-Producer → Topic（Partition 0/1/2） → Broker 集群
-                                           ↓ 持久化
-Consumer Group → Consumer ←─ 按 Offset 拉取
+Producer -> Topic（Partition 0/1/2） -> Broker 集群
+                                           v 持久化
+Consumer Group -> Consumer <-- 按 Offset 拉取
 ```
 
 ### 2.1 Topic（主题）
@@ -73,9 +73,9 @@ Topic 是消息的**逻辑分类**，类似数据库中的表名。一个系统�
 
 ```
 Topic: order-created（3 个分区）
-  ├── Partition 0: [msg0][msg3][msg6]...
-  ├── Partition 1: [msg1][msg4][msg7]...
-  └── Partition 2: [msg2][msg5][msg8]...
+  +-- Partition 0: [msg0][msg3][msg6]...
+  +-- Partition 1: [msg1][msg4][msg7]...
+  +-- Partition 2: [msg2][msg5][msg8]...
 ```
 
 **关键特性**：分区内消息**严格有序**，分区间**无序**。分区可以分散在不同 Broker 上，实现负载均衡和水平扩展。
@@ -86,7 +86,7 @@ Topic: order-created（3 个分区）
 
 ```
 Partition 0: [offset=0][offset=1][offset=2][offset=3]...
-                                              ↑
+                                              ^
                                     消费者当前消费到这里
 ```
 
@@ -113,9 +113,9 @@ Kafka 服务节点称为 Broker。生产环境通常 3 个以上 Broker 组成�
 Topic: order-created（3 分区）
 
 Group A（订单处理组）：             Group B（数据分析组）：
-  Consumer-1 → Partition 0           Consumer-1 → Partition 0
-  Consumer-2 → Partition 1                      → Partition 1
-  Consumer-3 → Partition 2                      → Partition 2
+  Consumer-1 -> Partition 0           Consumer-1 -> Partition 0
+  Consumer-2 -> Partition 1                      -> Partition 1
+  Consumer-3 -> Partition 2                      -> Partition 2
 ```
 
 ---
@@ -199,7 +199,7 @@ public class OrderProducer {
                     new ProducerRecord<>("order-created", orderId, payload);
 
                 RecordMetadata meta = producer.send(record).get();  // 同步发送，等待结果
-                System.out.printf("发送成功 → partition=%d, offset=%d%n",
+                System.out.printf("发送成功 -> partition=%d, offset=%d%n",
                     meta.partition(), meta.offset());
             }
         }
@@ -234,7 +234,7 @@ public class OrderConsumer {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
                 for (ConsumerRecord<String, String> record : records) {
-                    System.out.printf("收到消息 → partition=%d, offset=%d, key=%s%n",
+                    System.out.printf("收到消息 -> partition=%d, offset=%d, key=%s%n",
                         record.partition(), record.offset(), record.key());
                     // 处理业务逻辑...
                 }

@@ -43,11 +43,11 @@ Spring Security 通过一条 **Filter 链**（SecurityFilterChain）依次处理
 
 ```
 HTTP 请求
-    ↓
+    v
 UsernamePasswordAuthenticationFilter（认证）
-    ↓
+    v
 FilterSecurityInterceptor（授权）
-    ↓
+    v
 Controller
 ```
 ---
@@ -56,13 +56,13 @@ Controller
 
 ```
 SecurityFilterChain（15+ 个 Filter 组成的链）
-    ↓
+    v
 AuthenticationManager.authenticate(token)
-    ↓
+    v
 AuthenticationProvider（支持多种认证方式）
-    ↓
-UserDetailsService.loadUserByUsername()  ← 开发者实现
-    ↓
+    v
+UserDetailsService.loadUserByUsername()  <- 开发者实现
+    v
 返回 Authentication 对象，存入 SecurityContextHolder（ThreadLocal）
 ```
 **核心类关系**：

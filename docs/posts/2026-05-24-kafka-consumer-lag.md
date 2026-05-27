@@ -242,24 +242,24 @@ kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
 
 ```
 Step 1：查看 Consumer Group 状态
-  → Consumer 实例都存活，分区分配正常
-  → 排除 Rebalance 和实例宕机
+  -> Consumer 实例都存活，分区分配正常
+  -> 排除 Rebalance 和实例宕机
 
 Step 2：查看 Lag 增长曲线
-  → LEO（生产速率）从 5000 msg/s 突增至 50000 msg/s（大促流量）
-  → Consumer 提交 Offset 增长速率仍是 5000 msg/s
-  → 生产/消费速率比 = 10:1，消费侧成为瓶颈
+  -> LEO（生产速率）从 5000 msg/s 突增至 50000 msg/s（大促流量）
+  -> Consumer 提交 Offset 增长速率仍是 5000 msg/s
+  -> 生产/消费速率比 = 10:1，消费侧成为瓶颈
 
 Step 3：查看消费者 GC 日志
-  → 正常，无异常 GC
+  -> 正常，无异常 GC
 
 Step 4：查看消费者应用日志
-  → 发现通知发送（调用短信平台 HTTP API）P99 延迟从 50ms 升至 800ms
-  → 短信平台被大促流量压垮，响应变慢
+  -> 发现通知发送（调用短信平台 HTTP API）P99 延迟从 50ms 升至 800ms
+  -> 短信平台被大促流量压垮，响应变慢
 
 Step 5：根本原因
-  → 消费者单线程 + HTTP 调用阻塞，实际并发处理能力 = 1000ms / 800ms ≈ 1.2 条/线程/秒
-  → 6 个 Consumer 实例 × 1.2 条/秒 = 约 7 条/秒（远低于 50000 msg/s）
+  -> 消费者单线程 + HTTP 调用阻塞，实际并发处理能力 = 1000ms / 800ms ≈ 1.2 条/线程/秒
+  -> 6 个 Consumer 实例 × 1.2 条/秒 = 约 7 条/秒（远低于 50000 msg/s）
 ```
 
 **应急处理**：

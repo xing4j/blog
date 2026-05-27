@@ -25,24 +25,24 @@
 ## 一、整体架构图
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Kafka Cluster                        │
-│                                                             │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐             │
-│  │ Broker 1 │    │ Broker 2 │    │ Broker 3 │             │
-│  │          │    │          │    │          │             │
-│  │ Topic-A  │    │ Topic-A  │    │ Topic-A  │             │
-│  │  P0(L)   │    │  P1(L)   │    │  P2(L)   │             │
-│  │  P1(F)   │    │  P2(F)   │    │  P0(F)   │             │
-│  │  P2(F)   │    │  P0(F)   │    │  P1(F)   │             │
-│  └────┬─────┘    └────┬─────┘    └────┬─────┘             │
-│       │               │               │                    │
-│       └───────────────┴───────────────┘                    │
-│                       │  Controller (active Broker)         │
-└───────────────────────┼─────────────────────────────────────┘
-                        │
-          ┌─────────────┼──────────────┐
-          │             │              │
++-------------------------------------------------------------+
+|                        Kafka Cluster                        |
+|                                                             |
+|  +----------+    +----------+    +----------+             |
+|  | Broker 1 |    | Broker 2 |    | Broker 3 |             |
+|  |          |    |          |    |          |             |
+|  | Topic-A  |    | Topic-A  |    | Topic-A  |             |
+|  |  P0(L)   |    |  P1(L)   |    |  P2(L)   |             |
+|  |  P1(F)   |    |  P2(F)   |    |  P0(F)   |             |
+|  |  P2(F)   |    |  P0(F)   |    |  P1(F)   |             |
+|  +----+-----+    +----+-----+    +----+-----+             |
+|       |               |               |                    |
+|       +---------------+---------------+                    |
+|                       |  Controller (active Broker)         |
++-----------------------+-------------------------------------+
+                        |
+          +-------------+--------------+
+          |             |              |
      Producer      ZooKeeper/     Consumer Group
                    KRaft 元数据
 ```
@@ -122,19 +122,19 @@ Controller 是集群的"大脑"，本质上是某个 Broker 扮演的特殊角�
 
 ```
 ① Producer 发送消息
-      ↓
+      v
 ② 根据 Partition 策略（Key Hash / 轮询）确定目标 Partition
-      ↓
+      v
 ③ 找到该 Partition 的 Leader Broker
-      ↓
+      v
 ④ Leader 将消息写入本地 Log 文件（顺序写磁盘）
-      ↓
+      v
 ⑤ Follower 主动 Fetch 消息，写入本地 Log
-      ↓
+      v
 ⑥ 当 ISR 中所有副本确认写入，Leader 更新 HW（High Watermark）
-      ↓
+      v
 ⑦ Producer 收到 ACK（acks=all 时需等到步骤⑥）
-      ↓
+      v
 ⑧ Consumer poll 时，只能读取 HW 以下的消息（已提交消息）
 ```
 
@@ -160,18 +160,18 @@ Value: <offset, timestamp, metadata>
 ## 五、Kafka 集群元数据流转
 
 ```
-                  ┌──────────────────┐
-                  │   Controller     │
-                  │  (active Broker) │
-                  └────────┬─────────┘
-         元数据广播         │          元数据广播
-        ┌──────────────────┤─────────────────────┐
-        ▼                  ▼                     ▼
+                  +------------------+
+                  |   Controller     |
+                  |  (active Broker) |
+                  +--------+---------+
+         元数据广播         |          元数据广播
+        +------------------+---------------------+
+        v                  v                     v
    Broker 1           Broker 2              Broker 3
    (缓存元数据)        (缓存元数据)           (缓存元数据)
-        ▲                  ▲
-        │  metadata fetch  │
-   Producer/Consumer ──────┘
+        ^                  ^
+        |  metadata fetch  |
+   Producer/Consumer ------+
 ```
 
 Producer 和 Consumer 在启动时会向任意 Broker 发起 `Metadata` 请求，获取所有 Topic 的分区 Leader 信息，随后直接与对应 Leader Broker 通信。元数据会在客户端本地缓存，定期刷新（`metadata.max.age.ms`，默认 5 分钟）。

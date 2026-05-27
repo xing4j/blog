@@ -40,9 +40,9 @@ public void createOrder(OrderDTO dto) {
 微服务拆库后，这种保证消失了：
 
 ```
-订单服务 ──→ orderMapper.insert()  ──→  订单 DB（MySQL A）
-    │
-    └─ Feign ──→ 库存服务 ──→ stockMapper.deduct()  ──→  库存 DB（MySQL B）
+订单服务 ---> orderMapper.insert()  --->  订单 DB（MySQL A）
+    |
+    +- Feign ---> 库存服务 ---> stockMapper.deduct()  --->  库存 DB（MySQL B）
 ```
 
 两个数据库，两个本地事务，任何一步失败，另一步无法自动回滚。
@@ -71,9 +71,9 @@ public void createOrder(OrderDTO dto) {
 ### 2.1 XA/2PC 为什么不适合互联网场景
 
 ```
-协调者 ──── Prepare ────▶  参与者A（持有锁，等待）
-       ╰─── Prepare ────▶  参与者B（持有锁，等待）
-                ↑ 网络超时 / 协调者宕机
+协调者 ---- Prepare ---->  参与者A（持有锁，等待）
+       ╰--- Prepare ---->  参与者B（持有锁，等待）
+                ^ 网络超时 / 协调者宕机
                所有参与者永久等待，锁不释放
 ```
 
@@ -84,22 +84,22 @@ XA 的致命缺陷：同步阻塞 + 协调者单点故障。Seata AT 模式的�
 ## 三、Seata 架构：TC / TM / RM
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                   Seata Server (TC)                       │
-│         Transaction Coordinator - Global TX Coordinator   │
-│  Manages global/branch TX state; drives commit/rollback  │
-└────────────────────────────┬─────────────────────────────┘
-                             │ Netty RPC
-           ┌─────────────────┴──────────────────┐
-           ▼                                     ▼
-┌──────────────────┐                  ┌──────────────────────┐
-│  Order-Svc (TM)  │                  │   Inventory-Svc (RM) │
-│  Transaction     │ ── Feign+XID ──▶ │   Resource Manager   │
-│  Manager         │                  │   Manages Branch TX  │
-│  @GlobalTx Start │                  │                      │
-└────────┬─────────┘                  └──────────┬───────────┘
-         │                                       │
-         ▼                                       ▼
++----------------------------------------------------------+
+|                   Seata Server (TC)                       |
+|         Transaction Coordinator - Global TX Coordinator   |
+|  Manages global/branch TX state; drives commit/rollback  |
++----------------------------+-----------------------------+
+                             | Netty RPC
+           +-----------------+------------------+
+           v                                     v
++------------------+                  +----------------------+
+|  Order-Svc (TM)  |                  |   Inventory-Svc (RM) |
+|  Transaction     | -- Feign+XID --> |   Resource Manager   |
+|  Manager         |                  |   Manages Branch TX  |
+|  @GlobalTx Start |                  |                      |
++--------+---------+                  +----------+-----------+
+         |                                       |
+         v                                       v
     Order DB (MySQL)                      Inventory DB (MySQL)
 ```
 
@@ -119,9 +119,9 @@ AT 模式通过**代理数据源**自动拦截 SQL，一阶段不等待全局事
 原始 SQL：UPDATE stock SET quantity = quantity - 1 WHERE product_id = 100
 
 AT 代理执行顺序：
-1. SELECT * FROM stock WHERE product_id = 100         → 保存 before image
-2. UPDATE stock SET quantity = quantity - 1 WHERE ...   → 执行业务 SQL
-3. SELECT * FROM stock WHERE product_id = 100         → 保存 after image
+1. SELECT * FROM stock WHERE product_id = 100         -> 保存 before image
+2. UPDATE stock SET quantity = quantity - 1 WHERE ...   -> 执行业务 SQL
+3. SELECT * FROM stock WHERE product_id = 100         -> 保存 after image
 4. 将 before/after image 序列化写入 undo_log（同一本地事务）
 5. 本地事务提交（释放本地锁，其他本地事务可见）
 ```
@@ -155,7 +155,7 @@ CREATE TABLE `undo_log` (
 // before image：{ product_id: 100, quantity: 10 }
 // after image： { product_id: 100, quantity: 9  }
 // 回滚 SQL：UPDATE stock SET quantity = 10 WHERE product_id = 100 AND quantity = 9
-//                                                              ↑ 校验 after image，防脏回滚
+//                                                              ^ 校验 after image，防脏回滚
 ```
 
 ### 4.3 全局锁：防止脏写
@@ -165,9 +165,9 @@ CREATE TABLE `undo_log` (
 Seata 通过**全局行锁（存储在 TC）**解决：
 
 ```
-AT 一阶段提交时         → 向 TC 申请全局行锁（持有至全局事务结束）
-其他 AT 事务修改同一行  → 检测到全局锁 → 重试等待（默认 30 次 × 10ms）
-全局事务结束            → 释放全局锁
+AT 一阶段提交时         -> 向 TC 申请全局行锁（持有至全局事务结束）
+其他 AT 事务修改同一行  -> 检测到全局锁 -> 重试等待（默认 30 次 × 10ms）
+全局事务结束            -> 释放全局锁
 ```
 
 ### 4.4 隔离级别
@@ -191,9 +191,9 @@ public StockVO queryForCriticalRead(Long productId) {
 TCC 是**业务层面的 2PC**，以代码侵入换高性能（无全局行锁）：
 
 ```
-Try     → 预留资源（冻结库存，不直接扣减）
-Confirm → 确认执行（使用冻结资源）
-Cancel  → 取消执行（释放冻结资源）
+Try     -> 预留资源（冻结库存，不直接扣减）
+Confirm -> 确认执行（使用冻结资源）
+Cancel  -> 取消执行（释放冻结资源）
 ```
 
 数据库设计需增加冻结字段：

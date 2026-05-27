@@ -28,21 +28,21 @@ OpenFeign 是 Spring Cloud 中最常用的声明式 HTTP 客户端，屏蔽了�
 
 ```
 @FeignClient 接口
-       ↓
+       v
    JDK 动态代理（FeignInvocationHandler）
-       ↓
+       v
    方法分派（SynchronousMethodHandler）
-       ↓
+       v
    请求模板构建（RequestTemplate）
-       ↓
+       v
    负载均衡（LoadBalancerFeignClient）
-       ↓ 从 Nacos/注册中心 获取实例列表
+       v 从 Nacos/注册中心 获取实例列表
    选择实例（RoundRobinLoadBalancer）
-       ↓
+       v
    实际 HTTP 调用（OkHttpClient / HttpClient）
-       ↓
+       v
    响应解码（Decoder）
-       ↓
+       v
    返回 Java 对象
 ```
 
@@ -58,15 +58,15 @@ public class OrderServiceApplication { ... }
 //    为每个接口注册 FeignClientFactoryBean
 
 // 3. 应用启动时，FeignClientFactoryBean.getObject() 被调用
-//    → Feign.builder().target(interface, url)
-//    → JDK 动态代理生成代理对象
-//    → 注册到 Spring 容器
+//    -> Feign.builder().target(interface, url)
+//    -> JDK 动态代理生成代理对象
+//    -> 注册到 Spring 容器
 
 // 4. 使用时，代理对象的 invoke() 被调用
-//    → 解析方法上的注解（@GetMapping 等）
-//    → 构建 HTTP Request
-//    → 通过负载均衡选择实例
-//    → 发送 HTTP 请求
+//    -> 解析方法上的注解（@GetMapping 等）
+//    -> 构建 HTTP Request
+//    -> 通过负载均衡选择实例
+//    -> 发送 HTTP 请求
 ```
 
 ### 1.3 关键源码理解
@@ -75,7 +75,7 @@ public class OrderServiceApplication { ... }
 // FeignInvocationHandler（核心入口）
 class FeignInvocationHandler implements InvocationHandler {
     
-    private final Map<Method, MethodHandler> dispatch; // 方法 → 处理器
+    private final Map<Method, MethodHandler> dispatch; // 方法 -> 处理器
     
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {

@@ -112,8 +112,8 @@ java \
 ```
 ```
 # Full GC 警告信号
-[GC pause (G1 Evacuation Pause) (mixed), 1.2345 secs]  ← mixed GC 超过 1 秒，需关注
-[Full GC (Allocation Failure), 5.6789 secs]             ← Full GC，问题严重
+[GC pause (G1 Evacuation Pause) (mixed), 1.2345 secs]  <- mixed GC 超过 1 秒，需关注
+[Full GC (Allocation Failure), 5.6789 secs]             <- Full GC，问题严重
 ```
 ### 3.2 判断 GC 健康度
 
@@ -161,14 +161,14 @@ jcmd <PID> GC.heap_dump /tmp/heapdump.hprof
 Leak Suspects Report：
 Problem Suspect 1:
   One instance of "com.example.CacheManager" loaded by "app" occupies 2.1 GB (52.3%)
-  ↑ 这是最可能的泄漏点，CacheManager 持有了 52% 的堆
+  ^ 这是最可能的泄漏点，CacheManager 持有了 52% 的堆
 
 Dominator Tree（支配树）：
   com.example.CacheManager
-    └─ HashMap[] (2.1GB)
-         └─ 大量 UserSession 对象（应该已过期但未被清除）
+    +- HashMap[] (2.1GB)
+         +- 大量 UserSession 对象（应该已过期但未被清除）
 
-→ 结论：CacheManager 的 HashMap 没有设置过期策略，用户 Session 对象无限堆积
+-> 结论：CacheManager 的 HashMap 没有设置过期策略，用户 Session 对象无限堆积
 ```
 ### 4.3 典型内存泄漏场景
 
@@ -209,7 +209,7 @@ jstat -gcutil <PID> 300000
 # 步骤2：确认是堆泄漏还是元空间或直接内存
 jcmd <PID> VM.native_memory summary  # 查看各内存区域使用量
 
-# 步骤3：Old Gen 持续增长 → 导出 heap dump 用 MAT 分析
+# 步骤3：Old Gen 持续增长 -> 导出 heap dump 用 MAT 分析
 jcmd <PID> GC.heap_dump /tmp/heap.hprof
 
 # 步骤4：查看 MAT Leak Suspects 报告，找到持有大量内存的对象
@@ -223,7 +223,7 @@ jstat -gc <PID> 1000 10   # 每秒打印一次，共10次
 # 输出示例：
 # S0C  S1C  S0U  S1U  EC     EU     OC      OU    MC    MU   YGC  YGCT  FGC  FGCT   GCT
 # 512  512  0    512  4096   3500   8192    7500  256   240   150  8.5   2    12.3  20.8
-#                                           ↑OldGen接近满          ↑Full GC 占比高
+#                                           ^OldGen接近满          ^Full GC 占比高
 
 # 分析：Old Gen 91.5% 使用率，考虑增大堆或排查对象晋升异常
 ```

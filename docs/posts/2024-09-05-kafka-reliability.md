@@ -9,8 +9,8 @@ Kafka 在追求高吞吐的同时，需要在三个环节防范消息丢失，�
 ## 一、消息丢失的三个环节
 
 ```
-Producer ──────→ Broker Cluster ──────→ Consumer
-   ↑                   ↑                   ↑
+Producer -------> Broker Cluster -------> Consumer
+   ^                   ^                   ^
  [环节1]             [环节2]             [环节3]
 发送未确认          副本未同步          消费前崩溃
 ```
@@ -111,9 +111,9 @@ try {
 
 ```
                     ISR（In-Sync Replicas）
-Leader ─────── Replica-1 (已同步)
-    └───────── Replica-2 (已同步)
-    └───────── Replica-3 (落后 > replica.lag.time.max.ms，已踢出 ISR)
+Leader ------- Replica-1 (已同步)
+    +--------- Replica-2 (已同步)
+    +--------- Replica-3 (落后 > replica.lag.time.max.ms，已踢出 ISR)
 ```
 
 ```properties

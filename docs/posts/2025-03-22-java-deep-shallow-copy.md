@@ -14,18 +14,18 @@ Java 中所有对象赋值默认是**引用传递**：User b = a 只是让 b 指
 
 ```
 原对象 original                     浅拷贝 copy
-┌────────────┐                    ┌────────────┐
-│ name="Alice"│                   │ name="Alice"│
-│ address ─────────────────────────→ address   │
-└────────────┘         ↓          └────────────┘
-                 ┌──────────┐
-                 │ city="BJ"│  ← 两个对象共享同一个 Address 实例
-                 └──────────┘
-                                      ↓ 深拷贝 deepCopy
-                 ┌──────────┐    ┌────────────┐
-                 │ city="BJ"│   │ name="Alice"│
-                 └──────────┘   │ address ──→ 新 Address 实例
-                                └────────────┘
++------------+                    +------------+
+| name="Alice"|                   | name="Alice"|
+| address --------------------------> address   |
++------------+         v          +------------+
+                 +----------+
+                 | city="BJ"|  <- 两个对象共享同一个 Address 实例
+                 +----------+
+                                      v 深拷贝 deepCopy
+                 +----------+    +------------+
+                 | city="BJ"|   | name="Alice"|
+                 +----------+   | address ---> 新 Address 实例
+                                +------------+
 ```
 - **浅拷贝**：复制基本类型字段，引用类型字段只复制引用指针（共享底层对象）
 - **深拷贝**：递归复制所有引用类型对象，两个对象完全独立
@@ -54,7 +54,7 @@ public class User implements Cloneable {
 User original = new User("Alice", new Address("北京"));
 User copy = original.clone();
 copy.getAddress().setCity("上海");
-System.out.println(original.getAddress().getCity()); // 输出：上海 ← 原对象被污染！
+System.out.println(original.getAddress().getCity()); // 输出：上海 <- 原对象被污染！
 ```
 ### 2.2 手动深拷贝（覆写 clone）
 
@@ -164,7 +164,7 @@ User copy = new User();
 BeanUtils.copyProperties(original, copy);
 
 copy.getTags().add("tag3");
-// original.getTags() == ["tag1", "tag2", "tag3"] ← 原对象被污染！
+// original.getTags() == ["tag1", "tag2", "tag3"] <- 原对象被污染！
 ```
 ### 坑 2：Apache BeanUtils 参数顺序与 Spring 相反
 
@@ -172,7 +172,7 @@ copy.getTags().add("tag3");
 // Spring：copyProperties(source, target)
 org.springframework.beans.BeanUtils.copyProperties(source, target);
 
-// Apache：copyProperties(target, source) ← 顺序相反！
+// Apache：copyProperties(target, source) <- 顺序相反！
 org.apache.commons.beanutils.BeanUtils.copyProperties(target, source);
 ```
 ### 坑 3：Jackson 深拷贝对 LocalDate 等类型需要配置
@@ -189,11 +189,11 @@ User copy = mapper.readValue(mapper.writeValueAsBytes(original), User.class);
 ## 五、生产选型建议
 
 ```
-DTO/VO 属性复制（字段映射）      → MapStruct（编译期生成，类型安全，性能最佳）
-业务对象深拷贝（简单场景）        → Jackson deepCopy
-业务对象深拷贝（高性能场景）      → Kryo（注意线程安全，使用池化）
-字段少的简单对象                 → 拷贝构造函数（最直观）
-避免使用                        → Apache BeanUtils（性能差且参数顺序容易混淆）
+DTO/VO 属性复制（字段映射）      -> MapStruct（编译期生成，类型安全，性能最佳）
+业务对象深拷贝（简单场景）        -> Jackson deepCopy
+业务对象深拷贝（高性能场景）      -> Kryo（注意线程安全，使用池化）
+字段少的简单对象                 -> 拷贝构造函数（最直观）
+避免使用                        -> Apache BeanUtils（性能差且参数顺序容易混淆）
 ```
 ---
 

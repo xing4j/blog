@@ -1,4 +1,4 @@
-# Java 泛型类型系统深度解析：Type 接口体系与反射获取
+﻿# Java 泛型类型系统深度解析：Type 接口体系与反射获取
 
 <div class="post-meta">📅 2026-05-21 &nbsp;·&nbsp; 🏷️ <span class="tag">Java</span></div>
 
@@ -18,11 +18,11 @@ Java 泛型是 1.5 引入的编译期特性，为了保持与旧版字节码的�
 
 ```
 Type（顶层接口）
-├── Class<T>                  ← 普通类型，如 String、Integer
-├── ParameterizedType         ← 参数化类型，如 List<String>、Map<K,V>
-├── TypeVariable<D>           ← 泛型变量，如 T、K、V
-├── WildcardType              ← 通配符类型，如 ? extends Number
-└── GenericArrayType          ← 泛型数组，如 T[]、List<String>[]
++-- Class<T>                  <- 普通类型，如 String、Integer
++-- ParameterizedType         <- 参数化类型，如 List<String>、Map<K,V>
++-- TypeVariable<D>           <- 泛型变量，如 T、K、V
++-- WildcardType              <- 通配符类型，如 ? extends Number
++-- GenericArrayType          <- 泛型数组，如 T[]、List<String>[]
 ```
 
 `GenericDeclaration` 是一个额外的接口，被 `Class` 和 `Method` 实现，用于获取类或方法上**声明的**泛型变量列表。
@@ -689,7 +689,7 @@ public class MapperRegistry {
 
 // 用户代码
 public interface UserMapper extends BaseMapper<User> {}
-// mapperRegistry.getEntityClass(UserMapper.class) → User.class
+// mapperRegistry.getEntityClass(UserMapper.class) -> User.class
 ```
 
 ---

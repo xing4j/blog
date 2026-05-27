@@ -28,16 +28,16 @@ JMM 规定：所有变量存储在**主内存**，每个线程拥有独立的**�
 
 ```
   Thread A                        Thread B
-┌─────────────────┐            ┌─────────────────┐
-│  Working Memory  │            │  Working Memory  │
-│ flag=false(old) │            │  flag=true(new)  │
-└────────┬────────┘            └────────┬────────┘
-         │ read / write                 │ read / write
-         ▼                              ▼
-    ┌────────────────────────────────────────┐
-    │              Main Memory               │
-    │            flag = true                 │
-    └────────────────────────────────────────┘
++-----------------+            +-----------------+
+|  Working Memory  |            |  Working Memory  |
+| flag=false(old) |            |  flag=true(new)  |
++--------+--------+            +--------+--------+
+         | read / write                 | read / write
+         v                              v
+    +----------------------------------------+
+    |              Main Memory               |
+    |            flag = true                 |
+    +----------------------------------------+
 
 Thread B 写入 flag=true 到主内存，
 但 Thread A 的工作内存中仍是旧值 false，
@@ -83,14 +83,14 @@ JMM 规定 volatile 读写插入屏障的位置：
 
 ```
 volatile 写：
-  [前] StoreStore 屏障  ← 禁止上面的写与 volatile 写重排
+  [前] StoreStore 屏障  <- 禁止上面的写与 volatile 写重排
   volatile 写操作
-  [后] StoreLoad 屏障   ← 禁止 volatile 写与后面的读重排
+  [后] StoreLoad 屏障   <- 禁止 volatile 写与后面的读重排
 
 volatile 读：
   volatile 读操作
-  [后] LoadLoad 屏障    ← 禁止 volatile 读与后面的读重排
-  [后] LoadStore 屏障   ← 禁止 volatile 读与后面的写重排
+  [后] LoadLoad 屏障    <- 禁止 volatile 读与后面的读重排
+  [后] LoadStore 屏障   <- 禁止 volatile 读与后面的写重排
 ```
 x86 架构上，StoreLoad 屏障对应 MFENCE 指令；ARM 上对应 DMB 指令。
 
@@ -186,7 +186,7 @@ public class Singleton {
 ```java
 private volatile int count = 0;
 
-// ❌ 非原子！count++ 等于 read → modify → write，三步之间可被抢占
+// ❌ 非原子！count++ 等于 read -> modify -> write，三步之间可被抢占
 public void increment() {
     count++;
 }

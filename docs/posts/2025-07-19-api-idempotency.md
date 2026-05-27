@@ -12,18 +12,18 @@
 常见的重复请求场景：
 
 1. 网络超时重试
-   Client ──→ [超时] ──→ Client 重试
-                          Server 已处理第一次请求 → 重复扣款！
+   Client ---> [超时] ---> Client 重试
+                          Server 已处理第一次请求 -> 重复扣款！
 
 2. MQ 消息重复消费
    Consumer 消费成功但提交 offset 前崩溃
-   重启后重新消费同一条消息 → 重复创建订单！
+   重启后重新消费同一条消息 -> 重复创建订单！
 
 3. 用户重复点击
-   用户快速双击提交按钮 → 创建两笔订单！
+   用户快速双击提交按钮 -> 创建两笔订单！
 
 4. 页面重复提交（F5 刷新）
-   POST 请求被浏览器重新发送 → 重复数据！
+   POST 请求被浏览器重新发送 -> 重复数据！
 ```
 
 ---
@@ -34,16 +34,16 @@
 
 ```
 Step 1: 客户端获取 Token
-Client ──GET /api/token──→ Server
-       ←─ token=UUID ────
+Client --GET /api/token---> Server
+       <-- token=UUID ----
 
 Step 2: 客户端提交请求（携带 Token）
-Client ──POST /api/order (token=UUID)──→ Server
+Client --POST /api/order (token=UUID)---> Server
        
 Step 3: Server 端原子操作
        Redis DEL token（原子删除）
-       ├── 删除成功 → 执行业务逻辑 → 返回成功
-       └── 删除失败（token不存在）→ 返回"重复请求"
+       +-- 删除成功 -> 执行业务逻辑 -> 返回成功
+       +-- 删除失败（token不存在）-> 返回"重复请求"
 ```
 
 ### 代码实现
@@ -166,10 +166,10 @@ public class OrderService {
 ```
 首次请求：
   key = "request:" + MD5(userId + bizType + bizId)
-  SET key "1" NX EX 86400  → 成功 → 处理请求 → 返回结果
+  SET key "1" NX EX 86400  -> 成功 -> 处理请求 -> 返回结果
 
 重复请求：
-  SET key "1" NX EX 86400  → 失败（key已存在）→ 返回"重复请求"
+  SET key "1" NX EX 86400  -> 失败（key已存在）-> 返回"重复请求"
 ```
 
 ### 代码实现
@@ -246,8 +246,8 @@ public PayResult pay(PayDTO dto) {
 
 ```
 初始状态：version=1, status=PENDING
-首次支付：UPDATE SET status=PAID, version=2 WHERE id=? AND version=1  → 成功（影响1行）
-重复支付：UPDATE SET status=PAID, version=2 WHERE id=? AND version=1  → 失败（影响0行，version已是2）
+首次支付：UPDATE SET status=PAID, version=2 WHERE id=? AND version=1  -> 成功（影响1行）
+重复支付：UPDATE SET status=PAID, version=2 WHERE id=? AND version=1  -> 失败（影响0行，version已是2）
 ```
 
 ### 代码实现
@@ -327,13 +327,13 @@ public class OrderPayService {
 ```
 状态流转图：
 
-CREATED ──支付──→ PAID ──发货──→ SHIPPED ──签收──→ COMPLETED
-   ↓                                                    
+CREATED --支付---> PAID --发货---> SHIPPED --签收---> COMPLETED
+   v                                                    
 CANCELLED（超时/主动取消）
 
 状态约束：
-- PAID → PAID（重复支付）：不允许，直接返回"已支付"
-- CANCELLED → PAID（先取消后支付）：不允许
+- PAID -> PAID（重复支付）：不允许，直接返回"已支付"
+- CANCELLED -> PAID（先取消后支付）：不允许
 ```
 
 ### 代码实现
@@ -399,18 +399,18 @@ public class OrderStateMachineService {
 业务场景决策树：
 
 数据插入场景（创建订单/记录）？
-├── 是 → 数据库唯一约束（最简单可靠）
++-- 是 -> 数据库唯一约束（最简单可靠）
 
 数据更新场景（支付/状态变更）？
-├── 是 → 业务状态复杂？
-│         ├── 是 → 状态机
-│         └── 否 → 乐观锁
++-- 是 -> 业务状态复杂？
+|         +-- 是 -> 状态机
+|         +-- 否 -> 乐观锁
 
 前端表单防重复提交？
-└── Token 令牌
++-- Token 令牌
 
 通用消息消费/RPC调用防重？
-└── Redis 防重（基于业务唯一键）
++-- Redis 防重（基于业务唯一键）
 ```
 
 ---

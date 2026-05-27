@@ -175,7 +175,7 @@ public class CachedUserService implements UserService {
 ## 五、责任链模式（Filter/Interceptor）
 
 ```java
-// 场景：请求处理链（权限检查 → 参数校验 → 日志 → 限流）
+// 场景：请求处理链（权限检查 -> 参数校验 -> 日志 -> 限流）
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
     @Override
@@ -197,7 +197,7 @@ public abstract class ApprovalHandler {
     public abstract void handle(ApprovalRequest req);
 }
 
-// 组合：组长 → 经理 → 总监
+// 组合：组长 -> 经理 -> 总监
 groupLeader.setNext(manager).setNext(director);
 groupLeader.handle(request);
 ```

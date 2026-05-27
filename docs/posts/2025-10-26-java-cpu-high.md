@@ -61,7 +61,7 @@ jstat -gcutil 12345 1000 10
 # 输出示例：
 #  S0     S1     E      O      M     CCS    YGC   YGCT    FGC   FGCT     GCT
 #  0.00  99.99  99.00  99.00  94.1  91.1    180   15.6     8    40.2   55.8
-#                             ↑Eden满  ↑Old满       ↑FGC 8次，占用 40s
+#                             ^Eden满  ^Old满       ^FGC 8次，占用 40s
 
 # 结论：Old Gen 满了，触发频繁 Full GC，CPU 都在 GC
 # 应急：增大堆（-Xmx），同时排查内存泄漏
@@ -74,7 +74,7 @@ jstat -gcutil 12345 1000 10
   java.lang.Thread.State: RUNNABLE
     at com.example.OrderService.calculateDiscount(OrderService.java:156)
     at com.example.OrderService.processOrder(OrderService.java:89)
-    # ↑ 持续 RUNNABLE，多次 dump 都在同一位置
+    # ^ 持续 RUNNABLE，多次 dump 都在同一位置
     # 很可能是 calculateDiscount 方法中存在死循环或极慢的循环
 ```
 **锁竞争/死锁**：
@@ -89,7 +89,7 @@ jstat -gcutil 12345 1000 10
   waiting to lock <0x00000007b9c04a20> (a com.example.UserCache)
   held by "http-nio-8080-exec-3"
 
-# ↑ 典型死锁：线程1持有 HashMap 锁，等 UserCache 锁
+# ^ 典型死锁：线程1持有 HashMap 锁，等 UserCache 锁
 #             线程3持有 UserCache 锁，等 HashMap 锁
 # jstack 末尾会有 "Found 1 deadlock" 自动提示
 ```
@@ -106,7 +106,7 @@ thread -n 5
 # 输出：
 # Id   Name                 Group            Priority  State    %cpu
 #  25  http-nio-8080-exec-1  main             5         RUNNABLE 89%
-#   ↑ 直接显示 CPU 占用，并输出完整调用栈
+#   ^ 直接显示 CPU 占用，并输出完整调用栈
 
 # 查看某个方法被调用的实时统计（调用次数、耗时分布）
 trace com.example.OrderService calculateDiscount

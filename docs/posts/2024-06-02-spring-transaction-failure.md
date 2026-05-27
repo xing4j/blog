@@ -39,12 +39,12 @@
 Spring 声明式事务基于 **AOP 动态代理**实现。当你调用一个带 @Transactional 的方法时，实际上是在调用代理对象的方法：
 
 ```
-调用方 → 代理对象（TransactionInterceptor）→ 目标对象.method()
-                 ↓
+调用方 -> 代理对象（TransactionInterceptor）-> 目标对象.method()
+                 v
          开启事务（begin transaction）
-                 ↓
+                 v
          执行业务方法
-                 ↓
+                 v
          提交/回滚事务（commit/rollback）
 ```
 **所有失效场景都可以从这张图找到根源**：要么代理没被调用，要么代理拦截失败，要么事务配置不匹配异常类型。
@@ -140,7 +140,7 @@ public class InventoryService {
         try {
             inventoryDao.deduct(itemId, qty);
         } catch (Exception e) {
-            log.error("库存扣减失败", e);  // ← 吞掉异常，Spring 以为成功！
+            log.error("库存扣减失败", e);  // <- 吞掉异常，Spring 以为成功！
         }
     }
 

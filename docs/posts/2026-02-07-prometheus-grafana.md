@@ -10,16 +10,16 @@ Prometheus 负责采集指标，Grafana 负责可视化，是生产环境监控�
 
 ```
 Spring Boot 应用
-  └── /actuator/prometheus 暴露 metrics
+  +-- /actuator/prometheus 暴露 metrics
 
 Prometheus（拉取模式）
-  └── 每 15s 抓取一次 /actuator/prometheus
+  +-- 每 15s 抓取一次 /actuator/prometheus
 
 Grafana
-  └── 查询 Prometheus 数据，绘制图表
+  +-- 查询 Prometheus 数据，绘制图表
 
 Alertmanager
-  └── Prometheus 触发告警规则 → 发送到邮件/钉钉/企业微信
+  +-- Prometheus 触发告警规则 -> 发送到邮件/钉钉/企业微信
 ```
 
 ---

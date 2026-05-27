@@ -156,8 +156,8 @@ Spring Boot 支持宽松绑定，以下写法等价于 `spring.datasource.url`�
 
 ```
 /opt/app/
-├── app.jar
-└── application.properties   ← 优先级高于 jar 内部的同名文件
++-- app.jar
++-- application.properties   <- 优先级高于 jar 内部的同名文件
 ```
 
 #### 默认搜索路径（优先级由高到低）
@@ -232,9 +232,9 @@ java -jar app.jar --spring.config.location=classpath:/default.yml,file:/etc/myap
 ### 3.6 Profile 专属配置（优先级 12-13）
 
 ```
-application.properties          ← 通用基础配置
-application-dev.properties      ← dev 环境追加/覆盖
-application-prod.properties     ← prod 环境追加/覆盖
+application.properties          <- 通用基础配置
+application-dev.properties      <- dev 环境追加/覆盖
+application-prod.properties     <- prod 环境追加/覆盖
 ```
 
 激活 Profile：
@@ -394,7 +394,7 @@ curl http://localhost:8080/actuator/env/server.port
 ## 总结
 
 ```
-优先级（高 → 低）：
+优先级（高 -> 低）：
 命令行参数 > JVM 系统属性 > OS 环境变量
 > 外部 Profile 配置 > 内部 Profile 配置
 > 外部通用配置 > 内部通用配置

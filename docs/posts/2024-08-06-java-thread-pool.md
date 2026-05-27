@@ -34,17 +34,17 @@ public ThreadPoolExecutor(
 
 ```
 提交任务 execute(task)
-   │
-   ├─① 当前线程数 < corePoolSize
-   │      └─→ 创建核心线程立即执行（即使有空闲线程）
-   │
-   ├─② 当前线程数 >= corePoolSize
-   │      ├─ workQueue 未满 ──→ 任务入队等待
-   │      └─ workQueue 已满
-   │               ├─ 当前线程数 < maximumPoolSize ──→ 创建非核心线程执行
-   │               └─ 当前线程数 >= maximumPoolSize ──→ 触发 RejectedExecutionHandler
-   │
-   └─ 非核心线程空闲 keepAliveTime 后自动回收
+   |
+   +-① 当前线程数 < corePoolSize
+   |      +--> 创建核心线程立即执行（即使有空闲线程）
+   |
+   +-② 当前线程数 >= corePoolSize
+   |      +- workQueue 未满 ---> 任务入队等待
+   |      +- workQueue 已满
+   |               +- 当前线程数 < maximumPoolSize ---> 创建非核心线程执行
+   |               +- 当前线程数 >= maximumPoolSize ---> 触发 RejectedExecutionHandler
+   |
+   +- 非核心线程空闲 keepAliveTime 后自动回收
 ```
 > 关键认知：**先填队列，再扩线程**。maximumPoolSize 的扩展只在队列满了之后才触发，而不是线程数一超过 corePoolSize 就立刻扩展。
 
@@ -196,7 +196,7 @@ new ThreadPoolExecutor(cpuCores, ...);  // 大量线程阻塞在 IO 等待，CPU
 
 // ✅ IO 密集型：考虑等待时间，可用公式：
 // 线程数 = CPU 核数 × (1 + 等待时间/计算时间)
-// 例如 IO 等待 9ms，计算 1ms → 线程数 = N × (1+9) = 10N
+// 例如 IO 等待 9ms，计算 1ms -> 线程数 = N × (1+9) = 10N
 new ThreadPoolExecutor(cpuCores * 10, ...);
 ```
 ### 坑 2：将无界队列与 maximumPoolSize 搭配

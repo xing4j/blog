@@ -10,15 +10,15 @@ Kubernetes（K8s）是容器编排的事实标准，解决大规模容器的部�
 
 ```
 Master 节点（控制平面）
-  ├── API Server    ── 所有操作的统一入口（REST API）
-  ├── Scheduler     ── 决定 Pod 调度到哪个节点
-  ├── Controller    ── 确保集群状态与期望状态一致
-  └── etcd          ── 存储集群所有状态（分布式 KV）
+  +-- API Server    -- 所有操作的统一入口（REST API）
+  +-- Scheduler     -- 决定 Pod 调度到哪个节点
+  +-- Controller    -- 确保集群状态与期望状态一致
+  +-- etcd          -- 存储集群所有状态（分布式 KV）
 
 Worker 节点（数据平面）
-  ├── kubelet       ── 管理节点上的 Pod 生命周期
-  ├── kube-proxy    ── 实现 Service 的网络代理
-  └── Container Runtime（Docker / containerd）
+  +-- kubelet       -- 管理节点上的 Pod 生命周期
+  +-- kube-proxy    -- 实现 Service 的网络代理
+  +-- Container Runtime（Docker / containerd）
 ```
 
 ---

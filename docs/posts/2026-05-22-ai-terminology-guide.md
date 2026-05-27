@@ -21,8 +21,8 @@
 ### 2.2 Transformer 架构简要
 
 ```
-输入文本 → Tokenizer → Embedding → [Transformer 块] × N → 输出 Token 概率
-                                          ↑
+输入文本 -> Tokenizer -> Embedding -> [Transformer 块] × N -> 输出 Token 概率
+                                          ^
                                Multi-Head Attention
                                Feed Forward Network
 ```
@@ -150,17 +150,17 @@ ReAct（Reasoning + Acting）是目前最主流的 Agent 执行模式：
 
 ```
 用户输入
-   ↓
+   v
 [思考] 需要哪些信息？用什么工具？
-   ↓
+   v
 [行动] 调用工具（搜索 / 执行代码 / 查数据库）
-   ↓
+   v
 [观察] 获取工具返回结果
-   ↓
+   v
 [思考] 结果够用了吗？还需要什么？
-   ↓
+   v
 …… 循环直到可以给出最终答案 ……
-   ↓
+   v
 最终回复
 ```
 
@@ -195,22 +195,22 @@ ReAct（Reasoning + Acting）是目前最主流的 Agent 执行模式：
 ### 4.4 Agent 的四个核心组件
 
 ```
-┌────────────────────────────────────────┐
-│               AI Agent                 │
-│                                        │
-│  ┌─────────┐      ┌─────────────────┐  │
-│  │ Planning│      │     Memory      │  │
-│  │Plan step│      │ Short: chat hist│  │
-│  │Pick tool│      │ Long: vector DB │  │
-│  └─────────┘      └─────────────────┘  │
-│                                        │
-│  ┌─────────┐      ┌─────────────────┐  │
-│  │  Tools  │      │     Action      │  │
-│  │Web Srch │      │ Execute code    │  │
-│  │Code Sbox│      │ Call REST API   │  │
-│  │Filesys. │      │ Control browser │  │
-│  └─────────┘      └─────────────────┘  │
-└────────────────────────────────────────┘
++----------------------------------------+
+|               AI Agent                 |
+|                                        |
+|  +---------+      +-----------------+  |
+|  | Planning|      |     Memory      |  |
+|  |Plan step|      | Short: chat hist|  |
+|  |Pick tool|      | Long: vector DB |  |
+|  +---------+      +-----------------+  |
+|                                        |
+|  +---------+      +-----------------+  |
+|  |  Tools  |      |     Action      |  |
+|  |Web Srch |      | Execute code    |  |
+|  |Code Sbox|      | Call REST API   |  |
+|  |Filesys. |      | Control browser |  |
+|  +---------+      +-----------------+  |
++----------------------------------------+
 ```
 
 ---
@@ -249,14 +249,14 @@ argument-hint: '文件路径或代码片段'
 
 ```
 传统方式（M × N 适配）：
-  Copilot ──→ 数据库适配器
-  Cursor  ──→ Git 适配器      （每对组合都要单独开发）
-  Claude  ──→ Jira 适配器
+  Copilot ---> 数据库适配器
+  Cursor  ---> Git 适配器      （每对组合都要单独开发）
+  Claude  ---> Jira 适配器
 
 MCP 方式（M + N 标准化）：
-  Copilot ─┐
-  Cursor  ─┼──→ MCP Server ──→ 数据库 / Git / Jira / 文件系统
-  Claude  ─┘
+  Copilot -+
+  Cursor  -+---> MCP Server ---> 数据库 / Git / Jira / 文件系统
+  Claude  -+
 ```
 
 MCP Server 暴露三类标准化能力：
@@ -330,9 +330,9 @@ AI 生成的代码容易遗漏边界 case，让它先输出测试用例，能有
 **SDD（Specification-Driven Development，规格驱动开发）** 是以**结构化规格文档为核心**，驱动 AI 生成稳定、可预期代码的开发范式。
 
 ```
-传统开发：需求文档 → 开发者理解 → 编码（信息损耗大）
-TDD：     需求文档 → 测试用例   → 编码（让测试通过）
-SDD：     需求文档 → 规格文档   → AI 生成代码 → 人工验证
+传统开发：需求文档 -> 开发者理解 -> 编码（信息损耗大）
+TDD：     需求文档 -> 测试用例   -> 编码（让测试通过）
+SDD：     需求文档 -> 规格文档   -> AI 生成代码 -> 人工验证
 ```
 
 区别于 Vibe Coding 的随意描述，SDD 要求在写代码之前产出一份机器可理解的规格，作为 Prompt 的核心输入。
@@ -364,10 +364,10 @@ POST /api/users/register
 - 400：{ "code": "USER_EXISTS", "message": "用户名已存在" }
 
 ### 测试用例
-1. 正常注册 → 201
-2. 重复用户名 → 400 USER_EXISTS
-3. 密码不符合规则 → 400 INVALID_PASSWORD
-4. email 格式非法 → 400 INVALID_EMAIL
+1. 正常注册 -> 201
+2. 重复用户名 -> 400 USER_EXISTS
+3. 密码不符合规则 -> 400 INVALID_PASSWORD
+4. email 格式非法 -> 400 INVALID_EMAIL
 ```
 
 这样的 Spec 作为 Prompt 输入，AI 能生成结构完整、边界清晰、测试覆盖充分的代码。
@@ -393,7 +393,7 @@ POST /api/users/register
 
 ```
 用户提问
-   ↓
+   v
 ① 将问题向量化（Embedding）
 ② 在向量数据库中检索语义最相关的文档片段
 ③ 将文档片段 + 原始问题拼成 Prompt
@@ -408,10 +408,10 @@ POST /api/users/register
 
 ```
 "Java 线程池" 和 "Java concurrent executor"
-  → 向量余弦相似度 ≈ 0.92（语义相近，检索可以命中）
+  -> 向量余弦相似度 ≈ 0.92（语义相近，检索可以命中）
 
 "Java 线程池" 和 "MySQL 索引"
-  → 向量余弦相似度 ≈ 0.31（语义不相关）
+  -> 向量余弦相似度 ≈ 0.31（语义不相关）
 ```
 
 常用模型：OpenAI `text-embedding-3-small`、阿里 `text-embedding-v3`。
@@ -460,27 +460,27 @@ POST /api/users/register
 
 ```
 大模型（LLM）
-├── 架构：Transformer + Attention 机制
-├── 训练：预训练 → SFT → RLHF
-└── 关键参数：上下文窗口、Temperature、Token
++-- 架构：Transformer + Attention 机制
++-- 训练：预训练 -> SFT -> RLHF
++-- 关键参数：上下文窗口、Temperature、Token
 
 Prompt 工程
-├── 技巧：Zero-shot / Few-shot / CoT / 结构化模板
-└── 反模式：模糊描述、否定约束、任务堆砌
++-- 技巧：Zero-shot / Few-shot / CoT / 结构化模板
++-- 反模式：模糊描述、否定约束、任务堆砌
 
 AI Agent（智能体）
-├── 本质：LLM + Function Calling + 循环推理
-├── 框架：ReAct（思考-行动-观察）
-└── 组件：规划 + 记忆 + 工具 + 行动
++-- 本质：LLM + Function Calling + 循环推理
++-- 框架：ReAct（思考-行动-观察）
++-- 组件：规划 + 记忆 + 工具 + 行动
 
 生态扩展
-├── Skill：Agent 能力的声明式封装
-├── MCP：工具集成的标准化协议
-└── RAG：外部知识检索增强
++-- Skill：Agent 能力的声明式封装
++-- MCP：工具集成的标准化协议
++-- RAG：外部知识检索增强
 
 开发范式
-├── Vibe Coding：意图驱动，快速原型
-└── SDD：规格驱动，稳定交付
++-- Vibe Coding：意图驱动，快速原型
++-- SDD：规格驱动，稳定交付
 ```
 
 ### 开发者行动建议

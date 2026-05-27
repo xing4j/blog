@@ -28,18 +28,18 @@
 
 ```
 producer.send(record)
-      ↓
-① 序列化（Serializer）：Key/Value → byte[]
-      ↓
+      v
+① 序列化（Serializer）：Key/Value -> byte[]
+      v
 ② 分区计算（Partitioner）：确定消息发往哪个 Partition
-      ↓
+      v
 ③ 写入 RecordAccumulator（内存缓冲区）
-      ↓  （达到 batch.size 或等待超过 linger.ms）
+      v  （达到 batch.size 或等待超过 linger.ms）
 ④ Sender 线程从缓冲区取出 Batch
-      ↓
+      v
 ⑤ NetworkClient 通过网络发送到目标 Broker
-      ↓
-⑥ Broker 返回 ACK → 触发 Callback 或 Future 完成
+      v
+⑥ Broker 返回 ACK -> 触发 Callback 或 Future 完成
 ```
 
 ### 1.1 RecordAccumulator（消息累加器）
@@ -131,8 +131,8 @@ public class VipPartitioner implements Partitioner {
 网络抖动可能导致消息发送超时，Producer 会自动重试。但重试可能造成**消息重复**：
 
 ```
-Producer 发送 msg1 → Broker 已写入 → ACK 在网络中丢失
-Producer 超时，重试 → Broker 再次写入 msg1 → 消息重复！
+Producer 发送 msg1 -> Broker 已写入 -> ACK 在网络中丢失
+Producer 超时，重试 -> Broker 再次写入 msg1 -> 消息重复！
 ```
 
 **解决方案：幂等 Producer（Idempotent Producer）**

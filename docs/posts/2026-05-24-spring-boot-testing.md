@@ -37,13 +37,13 @@
 ## 一、测试层次与工具选型
 
 ```
-单元测试 ─── JUnit 5 + Mockito，无 Spring Context，速度最快
-    ↓
-切片测试 ─── @WebMvcTest / @DataJpaTest / @JsonTest，只启动部分上下文
-    ↓
-集成测试 ─── @SpringBootTest，全量 Context，可对接真实数据库（Testcontainers）
-    ↓
-端到端测试 ─── Selenium / Playwright，浏览器级别，本文不涉及
+单元测试 --- JUnit 5 + Mockito，无 Spring Context，速度最快
+    v
+切片测试 --- @WebMvcTest / @DataJpaTest / @JsonTest，只启动部分上下文
+    v
+集成测试 --- @SpringBootTest，全量 Context，可对接真实数据库（Testcontainers）
+    v
+端到端测试 --- Selenium / Playwright，浏览器级别，本文不涉及
 ```
 
 **原则**：测试金字塔——单元测试数量最多、最快；集成测试数量少，只测关键路径。

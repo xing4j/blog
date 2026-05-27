@@ -130,7 +130,7 @@ public class NotificationService {
 ```java
 // ❌ 忘记加 @EnableAsync，@Async 完全不生效（同步执行）
 @SpringBootApplication
-// @EnableAsync  ← 漏了
+// @EnableAsync  <- 漏了
 public class MyApp { ... }
 ```
 

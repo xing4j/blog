@@ -46,13 +46,13 @@ onBeforeRouteLeave((to, from) => {
 
 ```
 用户登录
-  ↓
+  v
 获取 token + 用户信息（含权限）
-  ↓
+  v
 调用后端 /api/user/menus 获取菜单路由
-  ↓
+  v
 前端动态注册路由（router.addRoute）
-  ↓
+  v
 渲染侧边栏菜单
 ```
 

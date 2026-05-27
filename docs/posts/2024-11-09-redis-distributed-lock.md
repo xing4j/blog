@@ -12,11 +12,11 @@
 
 ```
 实例 A（JVM 1）   实例 B（JVM 2）
-     ↓                  ↓
+     v                  v
   synchronized     synchronized
   (各自独立，无法互斥)
-         ↓↓↓↓↓↓↓
-       MySQL / Redis（共享资源）← 竞争！
+         vvvvvvv
+       MySQL / Redis（共享资源）<- 竞争！
 ```
 **分布式锁的三个基本要求**：
 1. **互斥性**：同一时刻只有一个进程持有锁
@@ -47,7 +47,7 @@ if (locked) {
         deductStock();
     } finally {
         redis.del("lock:stock");  // ❌ 问题：可能删除别人的锁！
-        // 场景：业务超时 > 锁过期 → 锁被其他进程获取 → 本进程删了别人的锁
+        // 场景：业务超时 > 锁过期 -> 锁被其他进程获取 -> 本进程删了别人的锁
     }
 }
 ```
@@ -122,9 +122,9 @@ public void deductStock(Long itemId) {
 
 ```
 业务方法执行中
-    ↓ 每 10s
-Watchdog 线程：SET PX 30000 → 续期
-    ↓ 业务完成
+    v 每 10s
+Watchdog 线程：SET PX 30000 -> 续期
+    v 业务完成
 unlock()：释放锁，Watchdog 停止
 ```
 ---

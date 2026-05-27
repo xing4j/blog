@@ -9,12 +9,12 @@ RBAC（Role-Based Access Control，基于角色的访问控制）是企业系统
 ## 一、RBAC 模型
 
 ```
-RBAC0（基础）：用户 → 角色 → 权限
+RBAC0（基础）：用户 -> 角色 -> 权限
 
 用户（User）   多对多   角色（Role）   多对多   权限（Permission）
-  admin         ←→     ADMIN         ←→      user:read
-  alice         ←→     MANAGER       ←→      user:write
-                ←→     VIEWER        ←→      order:read
+  admin         <-->     ADMIN         <-->      user:read
+  alice         <-->     MANAGER       <-->      user:write
+                <-->     VIEWER        <-->      order:read
 
 RBAC1（角色继承）：
 ADMIN 继承 MANAGER，MANAGER 继承 VIEWER

@@ -28,13 +28,13 @@ Sentinel 是阿里巴巴开源的流量防控组件，从流量控制、熔断�
 Resource: code block to protect (API / method / SQL / external call)
 Rule:     protection policy applied to resource
 
-                         ┌─────────────────────────────────┐
-                         │         Sentinel Core            │
-   request ────────────→ │                                  │ → execute resource
-                         │  FlowRule  Degrade  SystemRule  │
-                         │     ↓          ↓         ↓       │
-                         │  BlockException (rejected)       │
-                         └─────────────────────────────────┘
+                         +---------------------------------+
+                         |         Sentinel Core            |
+   request -------------> |                                  | -> execute resource
+                         |  FlowRule  Degrade  SystemRule  |
+                         |     v          v         v       |
+                         |  BlockException (rejected)       |
+                         +---------------------------------+
 ```
 
 > **说明**：资源（Resource）是需要保护的代码块；规则（Rule）作用在资源上。Sentinel Core 居中，根据 FlowRule（流控）、DegradeRule（降级）、SystemRule（系统）决定是执行充资源还是抛出 BlockException。
@@ -213,14 +213,14 @@ public void initDegradeRules() {
 
 ```
          normal requests pass through
-  CLOSED ──────────────────────→ CLOSED
-    │                                    ↑
-    │ circuit triggered                  │ probe OK
-    ↓                                    │
-  OPEN  ──── window expired ──→ HALF_OPEN
-    │         (all rejected)        │
-    │                               │ probe FAIL
-    └───────────────────────────────┘
+  CLOSED -----------------------> CLOSED
+    |                                    ^
+    | circuit triggered                  | probe OK
+    v                                    |
+  OPEN  ---- window expired ---> HALF_OPEN
+    |         (all rejected)        |
+    |                               | probe FAIL
+    +-------------------------------+
                                     reset to OPEN, extend window
 ```
 
