@@ -4,6 +4,8 @@
 
 ## Java 核心
 
+> 📚 **「JVM 原理与调优实战」系列（4 篇）**
+
 - [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md) — `2026-05-27`
 - [JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存](posts/2026-05-27-jvm-architecture.md) — `2026-05-27`
 - [Java 泛型类型系统深度解析：Type 接口体系与反射获取](posts/2026-05-21-java-generics-type-system.md) — `2026-05-21`
