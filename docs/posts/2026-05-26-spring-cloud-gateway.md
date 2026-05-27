@@ -85,7 +85,7 @@ Request
   |
   v
 +----------------------------------+
-|       RoutePredicateHandlerMapping|  <- 路由匹配
+|      RoutePredicateHandlerMapping|  <- 路由匹配
 |  Route 1: /api/order/** -> lb://order-service
 |  Route 2: /api/pay/**   -> lb://payment-service
 +----------------------------------+

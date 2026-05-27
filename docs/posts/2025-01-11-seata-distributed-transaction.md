@@ -85,8 +85,8 @@ XA 的致命缺陷：同步阻塞 + 协调者单点故障。Seata AT 模式的�
 
 ```
 +----------------------------------------------------------+
-|                   Seata Server (TC)                       |
-|         Transaction Coordinator - Global TX Coordinator   |
+|                   Seata Server (TC)                      |
+|         Transaction Coordinator - Global TX Coordinator  |
 |  Manages global/branch TX state; drives commit/rollback  |
 +----------------------------+-----------------------------+
                              | Netty RPC

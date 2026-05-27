@@ -53,12 +53,12 @@ doc_3 -> "Java 和 Python 都很流行"
 倒排列表（Posting List）：
 每个 Term 对应的文档信息：
 +----------+-------------------------------------------+
-|  Term    |  Posting List                              |
+|  Term    |  Posting List                             |
 +----------+-------------------------------------------+
-| "Java"   | [{doc_id:1, freq:2, pos:[0,5]},            |
-|          |  {doc_id:3, freq:1, pos:[0]}]               |
-| "Python" | [{doc_id:2, freq:1, pos:[0]},              |
-|          |  {doc_id:3, freq:1, pos:[2]}]               |
+| "Java"   | [{doc_id:1, freq:2, pos:[0,5]},           |
+|          |  {doc_id:3, freq:1, pos:[0]}]             |
+| "Python" | [{doc_id:2, freq:1, pos:[0]},             |
+|          |  {doc_id:3, freq:1, pos:[2]}]             |
 +----------+-------------------------------------------+
   doc_id: 文档 ID
   freq: 词项在该文档中出现的频率（用于相关性评分）

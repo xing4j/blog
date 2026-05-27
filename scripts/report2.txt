@@ -1,0 +1,309 @@
+﻿=== 2024-05-27-jvm-gc-collectors.md : block starts at file line 112 ===
+  ( 31chars) L112: +----+----+----+----+----+----+
+  ( 44chars) L113: | E  | E  | S  | O  | H  | O  |  Region 动态分配
+  ( 51chars) L114: +----+----+----+----+----+----+  E=Eden, S=Survivor
+  ( 52chars) L115: | O  | E  | O  | E  | O  | S  |  O=Old,  H=Humongous
+  ( 31chars) L116: +----+----+----+----+----+----+
+
+=== 2024-07-28-mysql-index-btree.md : block starts at file line 51 ===
+  ( 36chars) L52: +----------------------------------+
+  ( 46chars) L53: | id=1 | name="Alice" | age=25 | … |  <- 完整行数据
+  ( 36chars) L54: +----------------------------------+
+
+=== 2024-07-28-mysql-index-btree.md : block starts at file line 65 ===
+  ( 24chars) L66: +----------------------+
+  ( 39chars) L67: | name="Alice" -> id=1 |  <- 只存主键，不存完整行
+  ( 24chars) L68: +----------------------+
+
+=== 2024-08-22-spring-aop-proxy.md : block starts at file line 42 ===
+  ( 46chars) L43: +--------------+              +--------------+
+  ( 62chars) L44: | Business Code|              | Business Code| <- focus on biz
+  ( 46chars) L45: | + Logging    |              +--------------+
+  ( 39chars) L46: | + Tx Code    |                      ^
+  ( 47chars) L47: | + Auth Code  |              +---------------+
+  ( 59chars) L48: +--------------+              | Aspect (Cross)| Log/Tx/Auth
+
+=== 2024-10-27-spring-boot-autoconfigure.md : block starts at file line 135 ===
+  ( 18chars) L136: +-- src/main/java/
+  ( 30chars) L137: |   +-- com/example/ratelimit/
+  ( 53chars) L138: |       +-- RateLimitAutoConfiguration.java  <- 自动配置类
+  ( 54chars) L139: |       +-- RateLimitProperties.java          <- 配置属性类
+  ( 53chars) L140: |       +-- RateLimitService.java             <- 核心服务
+  ( 23chars) L141: +-- src/main/resources/
+
+=== 2024-12-28-mysql-slow-query.md : block starts at file line 12 ===
+  ( 45chars) L13: +-------------------------------------------+
+  ( 45chars) L14: | Index Issues (70%)                        |
+  ( 45chars) L15: |  - No index / poor selectivity / invalid  |
+  ( 45chars) L16: +-------------------------------------------+
+  ( 45chars) L17: | SQL Design Issues (20%)                   |
+  ( 44chars) L18: |  - N+1 query / large OFFSET / SELECT *   |
+  ( 45chars) L19: +-------------------------------------------+
+  ( 45chars) L20: | Data Volume Issues (10%)                  |
+  ( 44chars) L21: |  - Table rows > 10M / hot-cold data mix  |
+  ( 45chars) L22: +-------------------------------------------+
+
+=== 2025-01-11-seata-distributed-transaction.md : block starts at file line 87 ===
+  ( 60chars) L87: +----------------------------------------------------------+
+  ( 60chars) L88: |                   Seata Server (TC)                      |
+  ( 60chars) L89: |         Transaction Coordinator - Global TX Coordinator  |
+  ( 60chars) L90: |  Manages global/branch TX state; drives commit/rollback  |
+  ( 60chars) L91: +----------------------------+-----------------------------+
+  ( 62chars) L95: +------------------+                  +----------------------+
+  ( 62chars) L96: |  Order-Svc (TM)  |                  |   Inventory-Svc (RM) |
+  ( 62chars) L97: |  Transaction     | -- Feign+XID --> |   Resource Manager   |
+  ( 62chars) L98: |  Manager         |                  |   Manages Branch TX  |
+  ( 62chars) L99: |  @GlobalTx Start |                  |                      |
+  ( 62chars) L100: +--------+---------+                  +----------+-----------+
+
+=== 2025-06-27-spring-cloud-overview.md : block starts at file line 67 ===
+  ( 36chars) L70: +-- 路由转发：根据 Path/Host/Header 路由到对应服务
+  ( 33chars) L71: +-- 负载均衡：集成 LoadBalancer，自动发现服务实例
+  ( 25chars) L72: +-- 鉴权认证：JWT 验证、OAuth2 集成
+  ( 32chars) L73: +-- 限流：集成 Sentinel 或内置 Redis 令牌桶
+  ( 26chars) L74: +-- 灰度发布：按权重/Header 路由到新版本
+  ( 18chars) L75: +-- 日志审计：统一请求/响应日志
+  ( 19chars) L76: +-- 跨域处理：统一 CORS 配置
+
+=== 2025-06-27-spring-cloud-overview.md : block starts at file line 82 ===
+  ( 33chars) L85: +-- 服务注册：服务启动时注册实例（IP:Port + 元数据）
+  ( 25chars) L86: +-- 服务发现：客户端订阅服务列表，获取可用实例
+  ( 27chars) L87: +-- 健康检查：心跳检测（默认5s），剔除不健康实例
+  ( 27chars) L88: +-- 临时/持久实例：AP（临时）vs CP（持久）
+  ( 40chars) L91: +-- 集中配置：DataId + Group + Namespace 三级隔离
+  ( 34chars) L92: +-- 动态刷新：配置变更推送，@RefreshScope 自动刷新
+  ( 18chars) L93: +-- 灰度配置：按标签推送不同配置
+
+=== 2025-06-27-spring-cloud-overview.md : block starts at file line 99 ===
+  ( 31chars) L102: +-- 流控规则（FlowRule）：QPS 或并发线程数限制
+  ( 36chars) L103: +-- 降级规则（DegradeRule）：慢调用/异常比例/异常数熔断
+  ( 32chars) L104: +-- 系统规则（SystemRule）：系统 CPU/负载保护
+  ( 38chars) L107: +-- 接口（URL）：@SentinelResource 或过滤器自动识别
+  ( 17chars) L108: +-- 服务调用：Feign 集成
+  ( 16chars) L109: +-- 消息消费：MQ 消费限流
+
+=== 2025-06-27-spring-cloud-overview.md : block starts at file line 115 ===
+  ( 29chars) L118: +-- 声明式接口：@FeignClient + 接口方法
+  ( 31chars) L119: +-- 负载均衡：集成 LoadBalancer（轮询/随机）
+  ( 33chars) L120: +-- 熔断降级：集成 Sentinel/Resilience4j
+  ( 21chars) L121: +-- 超时重试：可配置超时时间和重试策略
+  ( 28chars) L122: +-- 拦截器：请求头透传（Token/TraceId）
+
+=== 2025-06-27-spring-cloud-overview.md : block starts at file line 128 ===
+  ( 24chars) L131: +-- AT 模式：自动补偿（最常用，侵入性低）
+  ( 39chars) L132: +-- TCC 模式：Try-Confirm-Cancel（侵入性高，性能好）
+  ( 23chars) L133: +-- Saga 模式：长事务（复杂业务流程）
+  ( 27chars) L134: +-- XA 模式：基于 XA 协议（强一致，性能差）
+
+=== 2025-07-19-api-idempotency.md : block starts at file line 399 ===
+  ( 23chars) L402: +-- 是 -> 数据库唯一约束（最简单可靠）
+  ( 16chars) L405: +-- 是 -> 业务状态复杂？
+  ( 22chars) L406: |         +-- 是 -> 状态机
+  ( 22chars) L407: |         +-- 否 -> 乐观锁
+  ( 12chars) L410: +-- Token 令牌
+  ( 21chars) L413: +-- Redis 防重（基于业务唯一键）
+
+=== 2025-11-29-ddd-intro.md : block starts at file line 165 ===
+  ( 46chars) L165: +-- interfaces/          用户接口层（Controller、DTO）
+  ( 28chars) L166: |   +-- OrderController.java
+  ( 35chars) L167: |   +-- dto/OrderCreateRequest.java
+  (  1chars) L168: |
+  ( 40chars) L169: +-- application/         应用层（用例编排，无业务规则）
+  ( 36chars) L170: |   +-- OrderApplicationService.java
+  ( 39chars) L171: |   +-- command/CreateOrderCommand.java
+  (  1chars) L172: |
+  ( 40chars) L173: +-- domain/              领域层（核心业务，不依赖框架）
+  ( 52chars) L174: |   +-- model/Order.java, OrderItem.java, Money.java
+  ( 43chars) L175: |   +-- repository/OrderRepository.java（接口）
+  ( 41chars) L176: |   +-- service/PricingDomainService.java
+  ( 33chars) L177: |   +-- event/OrderPaidEvent.java
+  (  1chars) L178: |
+  ( 38chars) L179: +-- infrastructure/      基础设施层（实现技术细节）
+
+=== 2026-05-15-hello-world.md : block starts at file line 20 ===
+  ( 46chars) L21: +-- index.html        # docsify 入口（唯一需要的 HTML）
+  ( 36chars) L22: +-- .nojekyll         # 禁用 Jekyll 处理
+  ( 26chars) L23: +-- README.md         # 首页
+  ( 29chars) L24: +-- _sidebar.md       # 侧边栏导航
+  ( 28chars) L25: +-- _navbar.md        # 顶部导航
+  ( 27chars) L26: +-- _coverpage.md     # 封面页
+  ( 27chars) L27: +-- about.md          # 关于页
+  ( 28chars) L28: +-- posts/            # 文章目录
+
+=== 2026-05-17-qiankun-micro-frontend.md : block starts at file line 571 ===
+  ( 39chars) L572: +-- main-app/                 # 主应用（基座）
+  ( 12chars) L573: |   +-- src/
+  ( 18chars) L574: |   |   +-- micro/
+  ( 43chars) L575: |   |   |   +-- index.js     # qiankun 注册配置
+  ( 19chars) L576: |   |   +-- router/
+  ( 36chars) L577: |   |   |   +-- index.js     # 主应用路由
+  ( 18chars) L578: |   |   +-- views/
+  ( 24chars) L579: |   |   |   +-- Home.vue
+  ( 44chars) L580: |   |   |   +-- SubAppContainer.vue  # 子应用容器
+  ( 19chars) L581: |   |   +-- main.js
+  ( 20chars) L582: |   +-- package.json
+  (  1chars) L583: |
+  ( 39chars) L584: +-- app-vue/                  # Vue 子应用
+  ( 12chars) L585: |   +-- src/
+  ( 52chars) L586: |   |   +-- public-path.js   # webpack publicPath 配置
+  ( 19chars) L587: |   |   +-- router/
+  ( 49chars) L588: |   |   |   +-- index.js     # 支持动态 base 的 router
+  ( 57chars) L589: |   |   +-- main.js          # 导出 bootstrap/mount/unmount
+  ( 39chars) L590: |   +-- vue.config.js        # UMD 打包配置
+  ( 20chars) L591: |   +-- package.json
+  (  1chars) L592: |
+  ( 41chars) L593: +-- app-react/                # React 子应用
+
+=== 2026-05-21-java-generics-type-system.md : block starts at file line 20 ===
+  ( 54chars) L21: +-- Class<T>                  <- 普通类型，如 String、Integer
+  ( 62chars) L22: +-- ParameterizedType         <- 参数化类型，如 List<String>、Map<K,V>
+  ( 45chars) L23: +-- TypeVariable<D>           <- 泛型变量，如 T、K、V
+  ( 57chars) L24: +-- WildcardType              <- 通配符类型，如 ? extends Number
+  ( 58chars) L25: +-- GenericArrayType          <- 泛型数组，如 T[]、List<String>[]
+
+=== 2026-05-22-ai-terminology-guide.md : block starts at file line 345 ===
+  ( 46chars) L351: | 字段     | 类型   | 约束                         |
+  ( 52chars) L352: |----------|--------|------------------------------|
+  ( 43chars) L353: | username | String | 必填，4-20 字符，字母数字     |
+  ( 42chars) L354: | password | String | 必填，8-32 字符，含大小写+数字 |
+  ( 46chars) L355: | email    | String | 必填，合法 email 格式         |
+
+=== 2026-05-22-ai-terminology-guide.md : block starts at file line 462 ===
+  ( 33chars) L463: +-- 架构：Transformer + Attention 机制
+  ( 25chars) L464: +-- 训练：预训练 -> SFT -> RLHF
+  ( 32chars) L465: +-- 关键参数：上下文窗口、Temperature、Token
+  ( 41chars) L468: +-- 技巧：Zero-shot / Few-shot / CoT / 结构化模板
+  ( 22chars) L469: +-- 反模式：模糊描述、否定约束、任务堆砌
+  ( 36chars) L472: +-- 本质：LLM + Function Calling + 循环推理
+  ( 22chars) L473: +-- 框架：ReAct（思考-行动-观察）
+  ( 24chars) L474: +-- 组件：规划 + 记忆 + 工具 + 行动
+  ( 24chars) L477: +-- Skill：Agent 能力的声明式封装
+  ( 18chars) L478: +-- MCP：工具集成的标准化协议
+  ( 16chars) L479: +-- RAG：外部知识检索增强
+  ( 25chars) L482: +-- Vibe Coding：意图驱动，快速原型
+  ( 17chars) L483: +-- SDD：规格驱动，稳定交付
+
+=== 2026-05-22-sdd-ai-charter-skills.md : block starts at file line 247 ===
+  ( 45chars) L248: +-- copilot-instructions.md  -> 全局始终生效的指令（宪章）
+  ( 39chars) L249: +-- *.instructions.md        -> 文件级按需指令
+  ( 39chars) L250: +-- *.prompt.md              -> 单次任务提示词
+  ( 42chars) L251: +-- *.agent.md               -> 自定义子 Agent
+  ( 45chars) L252: +-- hooks/*.json             -> 生命周期钩子（确定性行为）
+  ( 51chars) L253: +-- skills/<name>/SKILL.md  -> 可复用工作流（Skill）<- 本节重点
+
+=== 2026-05-26-spring-cloud-gateway.md : block starts at file line 48 ===
+  ( 20chars) L51: +------------------+
+  ( 44chars) L52: |   API Gateway    |  <- 统一鉴权 / 限流 / 路由 / 日志
+  ( 20chars) L53: +--------+---------+
+
+=== 2026-05-26-spring-cloud-gateway.md : block starts at file line 79 ===
+  ( 36chars) L82: +----------------------------------+
+  ( 51chars) L83: |         DispatcherHandler        |  <- WebFlux 核心
+  ( 36chars) L84: +----------------------------------+
+  ( 36chars) L87: +----------------------------------+
+  ( 45chars) L88: |      RoutePredicateHandlerMapping|  <- 路由匹配
+  ( 47chars) L89: |  Route 1: /api/order/** -> lb://order-service
+  ( 49chars) L90: |  Route 2: /api/pay/**   -> lb://payment-service
+  ( 36chars) L91: +----------------------------------+
+  ( 36chars) L94: +----------------------------------+
+  ( 47chars) L95: |     FilteringWebHandler          |  <- 过滤器链执行
+  ( 36chars) L96: |  GlobalFilter: Auth, Log, Trace  |
+  ( 36chars) L97: |  GatewayFilter: StripPrefix, ... |
+  ( 36chars) L98: +----------------------------------+
+
+=== 2026-05-26-spring-cloud-security.md : block starts at file line 30 ===
+  ( 20chars) L34: +------------------+
+  ( 52chars) L35: |   API Gateway    |  <- 统一认证：验证 JWT，提取用户信息写入 Header
+  ( 20chars) L36: +--------+---------+
+
+=== 2026-05-26-spring-cloud-tracing.md : block starts at file line 145 ===
+  ( 55chars) L145: +------------------+     gRPC      +------------------+
+  ( 55chars) L146: |  Java Agent      | ----------->  |   OAP Server     |
+  ( 47chars) L147: |  (每个服务 JVM)  |               | (分析 + 聚合)    |
+  ( 55chars) L148: +------------------+               +--------+---------+
+
+=== 2026-05-27-jvm-architecture.md : block starts at file line 231 ===
+  ( 50chars) L231: +------------------------------------------------+
+  ( 50chars) L232: |              JVM Memory Layout                 |
+  ( 50chars) L233: |                                                |
+  ( 50chars) L234: |  Thread-Private (one per thread):              |
+  ( 50chars) L235: |  +------------+  +------------------+          |
+  ( 50chars) L236: |  | PC Register|  |   JVM Stack      |          |
+  ( 50chars) L237: |  | (bytecode  |  | [Frame][Frame].. |          |
+  ( 50chars) L238: |  |  pointer)  |  | (local vars,     |          |
+  ( 50chars) L239: |  +------------+  |  operand stack)  |          |
+  ( 50chars) L240: |                  +------------------+          |
+  ( 50chars) L241: |                  +------------------+          |
+  ( 50chars) L242: |                  | Native Method    |          |
+  ( 50chars) L243: |                  | Stack            |          |
+  ( 50chars) L244: |                  +------------------+          |
+  ( 50chars) L245: |                                                |
+  ( 50chars) L246: |  Thread-Shared:                                |
+  ( 50chars) L247: |  +------------------------------------------+  |
+  ( 50chars) L248: |  |                  Heap                    |  |
+  ( 49chars) L249: |  |  +-------------------+  +-------------+ |  |
+  ( 49chars) L250: |  |  |    Young Gen      |  |   Old Gen   | |  |
+  ( 49chars) L251: |  |  | [Eden][S0][S1]    |  |             | |  |
+  ( 49chars) L252: |  |  +-------------------+  +-------------+ |  |
+  ( 50chars) L253: |  +------------------------------------------+  |
+  ( 50chars) L254: |  +------------------------------------------+  |
+  ( 50chars) L255: |  |   Metaspace (off-heap, native memory)    |  |
+  ( 50chars) L256: |  |   (class metadata, method bytecodes)     |  |
+  ( 50chars) L257: |  +------------------------------------------+  |
+  ( 50chars) L258: |  +------------------------------------------+  |
+  ( 50chars) L259: |  |   Direct Memory (off-heap)               |  |
+  ( 50chars) L260: |  |   (NIO ByteBuffer, Netty)                |  |
+  ( 50chars) L261: |  +------------------------------------------+  |
+  ( 50chars) L262: +------------------------------------------------+
+
+=== 2026-05-27-jvm-memory-areas.md : block starts at file line 22 ===
+  ( 60chars) L22: +----------------------------------------------------------+
+  ( 60chars) L23: |                   JVM Memory Layout                      |
+  ( 60chars) L24: |                                                          |
+  ( 60chars) L25: |  Thread-Private (isolated per thread):                   |
+  ( 60chars) L26: |  +---------------+   +-----------------------------+     |
+  ( 60chars) L27: |  |  PC Register  |   |       JVM Stack             |     |
+  ( 60chars) L28: |  | (bytecode idx)|   |  +--------+  +--------+     |     |
+  ( 60chars) L29: |  +---------------+   |  | Frame1 |  | Frame2 |...  |     |
+  ( 60chars) L30: |                      |  | local  |  | local  |     |     |
+  ( 60chars) L31: |  +---------------+   |  | vars   |  | vars   |     |     |
+  ( 60chars) L32: |  | Native Method |   |  +--------+  +--------+     |     |
+  ( 60chars) L33: |  | Stack         |   +-----------------------------+     |
+  ( 60chars) L34: |  +---------------+                                       |
+  ( 60chars) L35: |                                                          |
+  ( 60chars) L36: |  Thread-Shared (all threads):                            |
+  ( 60chars) L37: |  +------------------------------------------------------+|
+  ( 60chars) L38: |  |                       Heap                           ||
+  ( 59chars) L39: |  |  +------------------------+  +------------------+   ||
+  ( 59chars) L40: |  |  |       Young Gen        |  |     Old Gen      |   ||
+  ( 59chars) L41: |  |  | +---------+--+------+  |  |  long-lived obj  |   ||
+  ( 59chars) L42: |  |  | |  Eden   |S0|  S1  |  |  +------------------+   ||
+  ( 60chars) L43: |  |  | +---------+--+------+  |                          ||
+  ( 60chars) L44: |  |  +------------------------+                          ||
+  ( 60chars) L45: |  +------------------------------------------------------+|
+  ( 60chars) L46: |  +------------------------------------------------------+|
+  ( 60chars) L47: |  |    Metaspace  (off-heap, native memory)              ||
+  ( 60chars) L48: |  |    class metadata / method bytecodes / interned str  ||
+  ( 60chars) L49: |  +------------------------------------------------------+|
+  ( 60chars) L50: |  +------------------------------------------------------+|
+  ( 60chars) L51: |  |    Direct Memory  (off-heap)                         ||
+  ( 60chars) L52: |  |    NIO ByteBuffer.allocateDirect / Netty ByteBuf     ||
+  ( 60chars) L53: |  +------------------------------------------------------+|
+  ( 60chars) L54: +----------------------------------------------------------+
+
+=== 2026-05-27-jvm-memory-areas.md : block starts at file line 98 ===
+  ( 50chars) L98: +------------------------------------------------+
+  ( 50chars) L99: |                    Heap                        |
+  ( 50chars) L100: |  +-----------------------------+               |
+  ( 47chars) L101: |  |         Young Gen (新生代)  |               |
+  ( 50chars) L102: |  |  +----------+  +----+----+  |               |
+  ( 50chars) L103: |  |  |  Eden    |  | S0 | S1 |  |               |
+  ( 50chars) L104: |  |  | (80% YG) |  |10% |10% |  |               |
+  ( 50chars) L105: |  |  +----------+  +----+----+  |               |
+  ( 50chars) L106: |  +-----------------------------+               |
+  ( 50chars) L107: |  +-----------------------------+               |
+  ( 47chars) L108: |  |        Old Gen (老年代)     |               |
+  ( 50chars) L109: |  |  long-lived objects         |               |
+  ( 50chars) L110: |  +-----------------------------+               |
+  ( 50chars) L111: +------------------------------------------------+
+

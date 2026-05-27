@@ -58,7 +58,7 @@ Twitter 2010 年开源的 64 位 ID 生成算法：
 ```
  bit 0    bit 1~41              bit 42~51       bit 52~63
 +------+----------------------+---------------+------------+
-|  0   |  41-bit Timestamp(ms)| 10-bit NodeID  | 12-bit Seq |
+|  0   |  41-bit Timestamp(ms)| 10-bit NodeID | 12-bit Seq |
 |Sign  |Relative epoch, ~69yr | DC(5)+Work(5) | 4096 per ms|
 +------+----------------------+---------------+------------+
 ```

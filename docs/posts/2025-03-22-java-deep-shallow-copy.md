@@ -15,8 +15,8 @@ Java 中所有对象赋值默认是**引用传递**：User b = a 只是让 b 指
 ```
 原对象 original                     浅拷贝 copy
 +------------+                    +------------+
-| name="Alice"|                   | name="Alice"|
-| address --------------------------> address   |
+|name="Alice"|                    |name="Alice"|
+| address -------------------------> address   |
 +------------+         v          +------------+
                  +----------+
                  | city="BJ"|  <- 两个对象共享同一个 Address 实例

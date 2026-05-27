@@ -10,16 +10,16 @@
 
 ```
 Slow query root cause categories:
-+-----------------------------------------+
++-------------------------------------------+
 | Index Issues (70%)                        |
 |  - No index / poor selectivity / invalid  |
-+-----------------------------------------+
++-------------------------------------------+
 | SQL Design Issues (20%)                   |
-|  - N+1 query / large OFFSET / SELECT *   |
-+-----------------------------------------+
+|  - N+1 query / large OFFSET / SELECT *    |
++-------------------------------------------+
 | Data Volume Issues (10%)                  |
-|  - Table rows > 10M / hot-cold data mix  |
-+-----------------------------------------+
+|  - Table rows > 10M / hot-cold data mix   |
++-------------------------------------------+
 ```
 ---
 
