@@ -7,6 +7,10 @@
 > - [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md)
 > - 👉 **JVM-03 JVM 垃圾回收器详解：从 CMS 到 ZGC 的演进（本文）**
 > - [JVM-04 JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析](posts/2024-07-09-jvm-tuning-heapdump.md)
+> - [JVM-05 内存泄漏排查实战：ThreadLocal、静态集合与监听器三大模式](posts/2026-05-28-jvm-memory-leak.md)
+> - [JVM-06 线程 Dump 实战分析：死锁、线程饥饿与线程泄漏识别](posts/2026-05-28-jvm-thread-dump.md)
+> - [JVM-07 类加载机制与双亲委派：破坏场景、热部署与 Metaspace 泄漏](posts/2026-05-28-jvm-classloading.md)
+> - [JVM-08 JVM 诊断工具全景：JFR/JMC、Arthas、async-profiler 选型与实战速查](posts/2026-05-28-jvm-profiling-tools.md)
 
 服务 P99 延迟偶发抖动，监控显示规律性的几百毫秒暂停——GC STW（Stop-The-World）是最常见的元凶。了解各代 GC 收集器的设计目标、工作机制和适用场景，是 JVM 调优的基础。
 

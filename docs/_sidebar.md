@@ -1,6 +1,10 @@
 <!-- _sidebar.md -->
 
 - **近期文章**
+  - [JVM-08 JVM 诊断工具全景](posts/2026-05-28-jvm-profiling-tools.md)
+  - [JVM-07 类加载机制与双亲委派](posts/2026-05-28-jvm-classloading.md)
+  - [JVM-06 线程 Dump 实战分析](posts/2026-05-28-jvm-thread-dump.md)
+  - [JVM-05 内存泄漏排查实战](posts/2026-05-28-jvm-memory-leak.md)
   - [JVM-02 JVM 内存区域详解](posts/2026-05-27-jvm-memory-areas.md)
   - [JVM-01 JVM 架构总览](posts/2026-05-27-jvm-architecture.md)
   - [SC-12 微服务最佳实践](posts/2026-05-26-microservice-best-practices.md)
@@ -9,14 +13,10 @@
   - [SC-08 微服务安全：Gateway + JWT](posts/2026-05-26-spring-cloud-security.md)
   - [SC-07 分布式链路追踪](posts/2026-05-26-spring-cloud-tracing.md)
   - [SC-05 Spring Cloud LoadBalancer](posts/2026-05-26-spring-cloud-loadbalancer.md)
-  - [SC-03 Spring Cloud Gateway](posts/2026-05-26-spring-cloud-gateway.md)
-  - [SB-22 Spring Boot 测试体系](posts/2026-05-24-spring-boot-testing.md)
-  - [SB-19 Spring Boot 自定义 Starter](posts/2026-05-24-spring-boot-custom-starter.md)
-  - [SB-18 Spring Boot Actuator](posts/2026-05-24-spring-boot-actuator.md)
 
 
 - **分类**
-  - [Java 核心 (14)](posts/#java-核心)
+  - [Java 核心 (18)](posts/#java-核心)
   - [Spring 生态 (25)](posts/#spring-生态)
   - [数据库 (10)](posts/#数据库)
   - [中间件 (15)](posts/#中间件)

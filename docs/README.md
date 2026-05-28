@@ -6,6 +6,10 @@
 
 | 日期 | 文章 | 分类 |
 |------|------|------|
+| 2026-05-28 | [JVM-08 JVM 诊断工具全景：JFR/JMC、Arthas、async-profiler 选型与实战速查](posts/2026-05-28-jvm-profiling-tools.md) | Java 核心 |
+| 2026-05-28 | [JVM-07 类加载机制与双亲委派：破坏场景、热部署与 Metaspace 泄漏](posts/2026-05-28-jvm-classloading.md) | Java 核心 |
+| 2026-05-28 | [JVM-06 线程 Dump 实战分析：死锁、线程饥饿与线程泄漏识别](posts/2026-05-28-jvm-thread-dump.md) | Java 核心 |
+| 2026-05-28 | [JVM-05 内存泄漏排查实战：ThreadLocal、静态集合与监听器三大模式](posts/2026-05-28-jvm-memory-leak.md) | Java 核心 |
 | 2026-05-27 | [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md) | Java 核心 |
 | 2026-05-27 | [JVM-01 JVM 架构总览：类加载、字节码执行与运行时内存](posts/2026-05-27-jvm-architecture.md) | Java 核心 |
 | 2026-05-26 | [SC-12 微服务最佳实践：接口幂等、版本兼容与蓝绿部署](posts/2026-05-26-microservice-best-practices.md) | 微服务 |
@@ -27,7 +31,7 @@
 | 2026-05-24 | [SB-11 Spring 循环依赖：三级缓存的设计原理](posts/2026-05-24-spring-circular-dependency.md) | Spring 生态 |
 ## 🏷️ 分类
 
-- [Java 核心 (14 篇)](posts/#java-核心)
+- [Java 核心 (18 篇)](posts/#java-核心)
 - [Spring 生态 (25 篇)](posts/#spring-生态)
 - [数据库 (10 篇)](posts/#数据库)
 - [中间件 (15 篇)](posts/#中间件)

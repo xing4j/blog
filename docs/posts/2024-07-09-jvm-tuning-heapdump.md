@@ -7,6 +7,10 @@
 > - [JVM-02 JVM 内存区域详解：六种 OOM 场景与排查实战](posts/2026-05-27-jvm-memory-areas.md)
 > - [JVM-03 JVM 垃圾回收器详解：从 CMS 到 ZGC 的演进](posts/2024-05-27-jvm-gc-collectors.md)
 > - 👉 **JVM-04 JVM 调优实战：参数配置、GC 日志与 Heap Dump 分析（本文）**
+> - [JVM-05 内存泄漏排查实战：ThreadLocal、静态集合与监听器三大模式](posts/2026-05-28-jvm-memory-leak.md)
+> - [JVM-06 线程 Dump 实战分析：死锁、线程饥饿与线程泄漏识别](posts/2026-05-28-jvm-thread-dump.md)
+> - [JVM-07 类加载机制与双亲委派：破坏场景、热部署与 Metaspace 泄漏](posts/2026-05-28-jvm-classloading.md)
+> - [JVM-08 JVM 诊断工具全景：JFR/JMC、Arthas、async-profiler 选型与实战速查](posts/2026-05-28-jvm-profiling-tools.md)
 
 生产服务半夜频繁重启，日志只有 java.lang.OutOfMemoryError: Java heap space。没有 heap dump，没有 GC 日志，运维人员只能重启祈祷。这篇文章的目的是：**在问题发生之前配置好可观测性工具，在问题发生时能快速定位**。
 
